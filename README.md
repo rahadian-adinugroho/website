@@ -39,3 +39,43 @@ Add these to the repository's GitHub Secrets:
 |---|---|
 | `CLOUDFLARE_API_TOKEN` | API token with **Cloudflare Pages: Edit** permission |
 | `CLOUDFLARE_ACCOUNT_ID` | Found in the Cloudflare dashboard sidebar |
+
+## Writing a blog post
+
+Create a `.md` file in `blog/src/content/posts/`. The filename becomes the URL slug.
+
+```markdown
+---
+title: "Your Post Title"
+description: "A one-sentence summary shown on the index page."
+date: 2026-06-18
+draft: false
+---
+
+Post content here. Standard Markdown applies.
+```
+
+Set `draft: true` to write without publishing. The post will be excluded from the index and all static routes until set back to `false`.
+
+## Categories
+
+Add an optional `category` field to a post's frontmatter:
+
+```markdown
+---
+category: traveling
+---
+```
+
+Available values:
+
+| Slug | Display label |
+|---|---|
+| `engineering-web-apps` | Engineering: Web Apps |
+| `engineering-networking` | Engineering: Networking |
+| `traveling` | Traveling |
+| `automotive` | Automotive |
+
+Posts are grouped by category on the index page. Each category also has its own listing page at `/category/{slug}`. Posts without a category are listed last under "Uncategorized".
+
+To add a new category, extend the enum in `blog/src/content/config.ts` and add the display label to the `CATEGORY_LABELS` map in `blog/src/pages/index.astro`, `blog/src/pages/category/[category].astro`, and `blog/src/pages/posts/[slug].astro`.
