@@ -42,7 +42,7 @@ The preview workflow only triggers when files under `landing/` or `blog/` actual
 
 ## DNS and Terraform
 
-My DNS has been managed via Terraform in a private repo for a while. The migration involved swapping the old InfinityFree A records for CNAME records pointing at Cloudflare Pages' default domains, and adding a redirect rule for `razondz.pp.ua` → `raharoho.me`. Cloudflare's CNAME flattening handles the root domain correctly so no special tricks were needed there.
+My DNS has been managed via Terraform in a private repo for a while. The migration involved swapping the old InfinityFree A records for CNAME records pointing at Cloudflare Pages' default domains. Cloudflare's CNAME flattening handles the root domain correctly so no special tricks were needed there.
 
 One thing I ran into: creating a Cloudflare Redirect Rule via Terraform requires the **Zone > Transform Rules > Edit** permission on the API token. The error message just says "request is not authorized", which is not immediately obvious.
 
