@@ -9,6 +9,8 @@ const {
   description = 'Senior Software Engineer at Traveloka. I design and build scalable backend systems.'
 } = Astro.props;
 
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "ProfilePage",
@@ -33,6 +35,17 @@ const structuredData = {
     <meta name="robots" content="index, follow" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    <link rel="canonical" href={canonicalURL} />
+    <meta property="og:type" content="profile" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="https://raharoho.me/img/profile.jpg" />
+    <meta property="og:image:alt" content="Rahadian Adinugroho" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="https://raharoho.me/img/profile.jpg" />
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   </head>
   <body class="bg-white text-zinc-950">
