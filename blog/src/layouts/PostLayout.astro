@@ -1,0 +1,33 @@
+---
+import Layout from './Layout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  date: Date;
+}
+
+const { title, description, date } = Astro.props;
+
+const formattedDate = date.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+<Layout title={title} description={description}>
+  <article>
+    <header class="mb-8">
+      <a href="/" class="text-sm text-zinc-500 hover:text-zinc-700 transition-colors">
+        ← All posts
+      </a>
+      <h1 class="mt-4 text-3xl font-bold text-zinc-900 leading-tight">{title}</h1>
+      <time class="mt-2 block text-sm text-zinc-500" datetime={date.toISOString()}>
+        {formattedDate}
+      </time>
+    </header>
+    <div class="prose prose-zinc prose-lg max-w-none">
+      <slot />
+    </div>
+  </article>
+</Layout>

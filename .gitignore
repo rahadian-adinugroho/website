@@ -1,0 +1,18 @@
+# deps
+node_modules/
+
+# Astro build output
+dist/
+.astro/
+
+# Package manager
+node_modules/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db

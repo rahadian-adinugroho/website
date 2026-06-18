@@ -1,0 +1,41 @@
+---
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <title>{title}</title>
+  </head>
+  <body class="bg-zinc-50 text-zinc-800 min-h-screen">
+    <header class="border-b border-zinc-200 bg-white">
+      <nav class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+        <a href="/" class="font-semibold text-zinc-900 hover:text-zinc-600 transition-colors">
+          Rahadian's Blog
+        </a>
+        <a
+          href="https://raharoho.me"
+          class="text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+        >
+          ← raharoho.me
+        </a>
+      </nav>
+    </header>
+    <main class="max-w-2xl mx-auto px-4 py-10">
+      <slot />
+    </main>
+    <footer class="border-t border-zinc-200 mt-16">
+      <div class="max-w-2xl mx-auto px-4 py-6 text-center text-sm text-zinc-400">
+        © {new Date().getFullYear()} Rahadian Adinugroho
+      </div>
+    </footer>
+  </body>
+</html>

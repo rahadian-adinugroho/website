@@ -1,0 +1,40 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { 
+  title = 'Rahadian Adinugroho',
+  description = 'Senior Software Engineer at Traveloka. I design and build scalable backend systems.'
+} = Astro.props;
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "ProfilePage",
+  "mainEntity": {
+    "@type": "Person",
+    "name": "Rahadian Adinugroho",
+    "description": "A software engineer at Traveloka, experienced in designing backend systems.",
+    "image": "https://raharoho.me/img/profile.jpg",
+    "jobTitle": "Senior Software Engineer",
+    "worksFor": { "@type": "Organization", "name": "Traveloka" },
+    "sameAs": ["https://www.linkedin.com/in/rahadian-adinugroho"]
+  }
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <title>{title}</title>
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  </head>
+  <body class="bg-white text-zinc-950">
+    <slot />
+  </body>
+</html>
