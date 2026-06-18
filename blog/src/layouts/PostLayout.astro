@@ -5,9 +5,11 @@ interface Props {
   title: string;
   description: string;
   date: Date;
+  category?: string;
+  categoryLabel?: string;
 }
 
-const { title, description, date } = Astro.props;
+const { title, description, date, category, categoryLabel } = Astro.props;
 
 const formattedDate = date.toLocaleDateString('en-US', {
   year: 'numeric',
@@ -25,6 +27,14 @@ const formattedDate = date.toLocaleDateString('en-US', {
       <time class="mt-2 block text-sm text-zinc-500" datetime={date.toISOString()}>
         {formattedDate}
       </time>
+      {category && categoryLabel && (
+        <a
+          href={`/category/${category}`}
+          class="mt-2 inline-block text-xs text-zinc-500 hover:text-zinc-700 transition-colors border border-zinc-300 rounded-full px-2 py-0.5"
+        >
+          {categoryLabel}
+        </a>
+      )}
     </header>
     <div class="prose prose-zinc prose-lg max-w-none">
       <slot />

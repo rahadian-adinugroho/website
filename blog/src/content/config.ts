@@ -8,6 +8,12 @@ export const collections = {
       description: z.string(),
       date: z.date(),
       draft: z.boolean().default(false),
+      category: z.enum([
+        'engineering-web-apps',
+        'engineering-networking',
+        'traveling',
+        'automotive',
+      ]).optional(),
     }),
   }),
 };

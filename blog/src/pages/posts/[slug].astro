@@ -2,6 +2,13 @@
 import { getCollection, render } from 'astro:content';
 import PostLayout from '../../layouts/PostLayout.astro';
 
+const CATEGORY_LABELS: Record<string, string> = {
+  'engineering-web-apps': 'Engineering: Web Apps',
+  'engineering-networking': 'Engineering: Networking',
+  'traveling': 'Traveling',
+  'automotive': 'Automotive',
+};
+
 export async function getStaticPaths() {
   const posts = await getCollection('posts', ({ data }) => !data.draft);
   return posts.map((post) => ({
@@ -12,7 +19,15 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+const category = post.data.category;
+const categoryLabel = category ? CATEGORY_LABELS[category] : undefined;
 ---
-<PostLayout title={post.data.title} description={post.data.description} date={post.data.date}>
+<PostLayout
+  title={post.data.title}
+  description={post.data.description}
+  date={post.data.date}
+  category={category}
+  categoryLabel={categoryLabel}
+>
   <Content />
 </PostLayout>
