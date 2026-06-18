@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.2" baseProfile="tiny-ps" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32" width="32" height="32">
+  <title>Rahadian Adinugroho</title>
+  <rect width="32" height="32" rx="8" fill="#0F172A"/>
+  <path d="M 9 7 L 13 7 Q 16 7 16 10 L 16 14 Q 16 17 13 17 L 9 17 L 9 25 L 6 25 L 6 7 Z M 9 10 L 9 14 L 13 14 Q 14.5 14 14.5 12.5 L 14.5 11.5 Q 14.5 10 13 10 L 9 10 Z M 13 17 L 18 25 L 20 25 L 14 17 Z" fill="#38BDF8"/>
+
+</svg>
