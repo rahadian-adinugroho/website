@@ -17,7 +17,7 @@ const formattedDate = date.toLocaleDateString('en-US', {
   day: 'numeric',
 });
 ---
-<Layout title={title} description={description}>
+<Layout title={title} description={description} type="article" publishedTime={date}>
   <article>
     <header class="mb-8">
       <a href="/" class="text-sm text-zinc-500 hover:text-zinc-700 transition-colors">
