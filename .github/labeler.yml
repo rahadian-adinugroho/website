@@ -1,0 +1,7 @@
+website:landing:
+  - changed-files:
+    - any-glob-to-any-file: "landing/**"
+
+website:blog:
+  - changed-files:
+    - any-glob-to-any-file: "blog/**"
