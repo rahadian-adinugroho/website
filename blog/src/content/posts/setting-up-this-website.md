@@ -6,9 +6,9 @@ category: engineering-web-apps
 draft: false
 ---
 
-For a while, my personal site at raharoho.me has been sitting on InfinityFree — a free hosting provider that, while generous, has one quirk that's been bothering me: it injects a JavaScript-based cookie challenge on every request. Most browsers handle it fine, but web crawlers, link previewers, and automated tools often just see a blank page. Not great for a portfolio.
+For a while, my personal site at raharoho.me has been sitting on InfinityFree — a free hosting provider that, while generous, comes with a few annoyances. The biggest one: SSL certificates need manual renewal every three months. Miss the reminder and your site goes down with a certificate error. The other irritation is a JavaScript-based cookie challenge injected on every request, which means web crawlers, link previewers, and automated tools often just see a blank page.
 
-So this week I finally migrated. Here's what the setup looks like now.
+Both of those got old quickly. So this week I finally migrated. Here's what the setup looks like now.
 
 ## The monorepo
 
