@@ -39,3 +39,20 @@ Add these to the repository's GitHub Secrets:
 |---|---|
 | `CLOUDFLARE_API_TOKEN` | API token with **Cloudflare Pages: Edit** permission |
 | `CLOUDFLARE_ACCOUNT_ID` | Found in the Cloudflare dashboard sidebar |
+
+## Writing a blog post
+
+Create a `.md` file in `blog/src/content/posts/`. The filename becomes the URL slug.
+
+```markdown
+---
+title: "Your Post Title"
+description: "A one-sentence summary shown on the index page."
+date: 2026-06-18
+draft: false
+---
+
+Post content here. Standard Markdown applies.
+```
+
+Set `draft: true` to write without publishing. The post will be excluded from the index and all static routes until set back to `false`.
