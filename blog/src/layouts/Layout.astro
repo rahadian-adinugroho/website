@@ -48,8 +48,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       <slot />
     </main>
     <footer class="border-t border-zinc-200 mt-16">
-      <div class="max-w-2xl mx-auto px-4 py-6 text-center text-sm text-zinc-400">
-        © {new Date().getFullYear()} Rahadian Adinugroho
+      <div class="max-w-2xl mx-auto px-4 py-6 text-center text-sm text-zinc-400 space-y-1">
+        <p>© {new Date().getFullYear()} Rahadian Adinugroho</p>
+        <p>All opinions expressed here are my own and do not represent my employer.</p>
       </div>
     </footer>
   </body>
