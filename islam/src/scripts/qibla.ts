@@ -7,11 +7,12 @@ let isIOS = false;
 
 export function initQibla(lat: number, lng: number): void {
   const coordinates = new Coordinates(lat, lng);
-  qiblaBearing = Qibla.calculate(coordinates);
+  qiblaBearing = Qibla(coordinates);
 
   // Check if iOS
   isIOS =
-    typeof (DeviceOrientationEvent as any)?.requestPermission === "function";
+    typeof DeviceOrientationEvent !== "undefined" &&
+    typeof (DeviceOrientationEvent as any).requestPermission === "function";
 
   showCompass();
   startCompass();

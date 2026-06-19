@@ -5,4 +5,9 @@ export default defineConfig({
   output: 'static',
   site: 'https://islam.raharoho.me',
   integrations: [tailwind()],
+  vite: {
+    build: {
+      minify: process.env.MINIFY !== 'false',
+    },
+  },
 });
