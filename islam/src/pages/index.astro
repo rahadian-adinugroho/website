@@ -55,7 +55,7 @@ const gregorianDate = today.toLocaleDateString(undefined, {
     const locationRequest = document.getElementById("location-request");
     const locationError = document.getElementById("location-error");
 
-    function handleLocationSuccess(position: GeolocationPosition) {
+    function handleLocationSuccess(position) {
       const { latitude, longitude } = position.coords;
 
       // Hide request UI
@@ -68,7 +68,7 @@ const gregorianDate = today.toLocaleDateString(undefined, {
 
       // Check if iOS compass permission is needed
       const compassBtn = document.getElementById("compass-permission-btn");
-      const isIOS = typeof (DeviceOrientationEvent as any)?.requestPermission === "function";
+      const isIOS = typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function';
       if (compassBtn && isIOS) {
         compassBtn.hidden = false;
         compassBtn.addEventListener("click", async () => {
