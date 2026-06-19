@@ -6,6 +6,7 @@ on:
     paths:
       - "landing/**"
       - "blog/**"
+      - "islam/**"
   workflow_dispatch:
 
 concurrency:
@@ -13,8 +14,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      landing: ${{ steps.filter.outputs.landing }}
+      blog: ${{ steps.filter.outputs.blog }}
+      islam: ${{ steps.filter.outputs.islam }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            landing:
+              - 'landing/**'
+            blog:
+              - 'blog/**'
+            islam:
+              - 'islam/**'
+
   preview-landing:
     name: Preview Landing
+    needs: changes
+    if: needs.changes.outputs.landing == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,6 +57,8 @@ jobs:
       - name: Build
         run: bun run build
         working-directory: landing
+        env:
+          MINIFY: false
 
       - name: Deploy preview
         uses: cloudflare/pages-action@v1
@@ -46,6 +71,8 @@ jobs:
 
   preview-blog:
     name: Preview Blog
+    needs: changes
+    if: needs.changes.outputs.blog == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -65,6 +92,8 @@ jobs:
       - name: Build
         run: bun run build
         working-directory: blog
+        env:
+          MINIFY: false
 
       - name: Deploy preview
         uses: cloudflare/pages-action@v1
@@ -73,4 +102,39 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: raharoho-blog
           directory: blog/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  preview-islam:
+    name: Preview Islam
+    needs: changes
+    if: needs.changes.outputs.islam == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+        working-directory: islam
+
+      - name: Build
+        run: bun run build
+        working-directory: islam
+        env:
+          MINIFY: false
+
+      - name: Deploy preview
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: raharoho-islam
+          directory: islam/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

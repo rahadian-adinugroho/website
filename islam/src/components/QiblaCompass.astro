@@ -1,0 +1,31 @@
+---
+// Qibla compass component
+// Circular compass with directional arrow
+// Hidden on desktop (md:hidden)
+// Hidden by default, shown via JS after geolocation
+---
+
+<div id="qibla-compass" hidden class="mt-8 md:hidden">
+  <div class="flex flex-col items-center">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Qibla Compass</h2>
+    <div class="relative w-48 h-48 rounded-full bg-gray-100 dark:bg-gray-800 border-4 border-gray-300 dark:border-gray-700 flex items-center justify-center">
+      <!-- Compass rose cardinal points -->
+      <span class="absolute top-2 text-xs font-bold text-gray-500 dark:text-gray-400">N</span>
+
+      <!-- Arrow -->
+      <svg id="qibla-arrow" class="w-32 h-32 transition-transform duration-300 ease-out" viewBox="0 0 100 100" style="transform: rotate(0deg)">
+        <!-- Arrow pointing up (toward Qibla) -->
+        <polygon points="50,10 35,50 45,50 45,90 55,90 55,50 65,50" fill="#16a34a" />
+      </svg>
+
+      <!-- Center dot -->
+      <div class="absolute w-3 h-3 rounded-full bg-primary-600 dark:bg-primary-400"></div>
+    </div>
+    <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">Qibla</p>
+
+    <!-- iOS permission button (hidden on non-iOS) -->
+    <button id="compass-permission-btn" hidden class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm transition-colors">
+      Enable Compass
+    </button>
+  </div>
+</div>

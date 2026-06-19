@@ -1,0 +1,44 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PrayerTimes from "../components/PrayerTimes.astro";
+import QiblaCompass from "../components/QiblaCompass.astro";
+---
+
+<Layout title="Prayer Times &amp; Qibla Compass — Islam">
+  <!-- Date display (populated client-side to respect timezone) -->
+  <div class="text-center mb-6">
+    <p class="text-lg text-gray-700 dark:text-gray-300" id="gregorian-date">--</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400" id="hijri-date">--</p>
+  </div>
+
+  <!-- Location request button (hidden by default, shown only if permission denied) -->
+  <div id="location-request" hidden class="flex flex-col items-center gap-4 mt-8">
+    <p class="text-gray-600 dark:text-gray-400 text-center">
+      Allow location access to see prayer times and Qibla direction for your area.
+    </p>
+    <button id="request-location-btn" class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+      Request Location
+    </button>
+  </div>
+
+  <!-- Error message (hidden by default) -->
+  <div id="location-error" hidden class="mt-6 flex flex-col items-center gap-4">
+    <p class="text-red-600 dark:text-red-400 text-center" id="location-error-msg">
+      Unable to access your location. Please check your browser permissions and try again.
+    </p>
+    <button id="retry-location-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
+      Retry
+    </button>
+  </div>
+
+  <!-- Prayer times -->
+  <PrayerTimes />
+
+  <!-- Qibla compass (mobile only) -->
+  <QiblaCompass />
+
+  <!-- App scripts -->
+  <script>
+    import "../scripts/app";
+  </script>
+</Layout>
