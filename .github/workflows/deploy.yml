@@ -10,8 +10,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      landing: ${{ steps.filter.outputs.landing }}
+      blog: ${{ steps.filter.outputs.blog }}
+      islam: ${{ steps.filter.outputs.islam }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          base: ${{ github.event.before }}
+          filters: |
+            landing:
+              - 'landing/**'
+            blog:
+              - 'blog/**'
+            islam:
+              - 'islam/**'
+
   deploy-landing:
     name: Deploy Landing
+    needs: changes
+    if: needs.changes.outputs.landing == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,6 +65,8 @@ jobs:
 
   deploy-blog:
     name: Deploy Blog
+    needs: changes
+    if: needs.changes.outputs.blog == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -72,6 +97,8 @@ jobs:
 
   deploy-islam:
     name: Deploy Islam
+    needs: changes
+    if: needs.changes.outputs.islam == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
