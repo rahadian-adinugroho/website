@@ -120,26 +120,15 @@ if (isIOS) {
   // Always show the button — the user tap satisfies the gesture requirement.
   console.log("[islam] iOS detected — showing button, no auto-request");
   if (locationRequest) locationRequest.hidden = false;
-} else if (navigator.permissions && navigator.permissions.query) {
-  // Non-iOS: check permission state
-  navigator.permissions
-    .query({ name: "geolocation" as PermissionName })
-    .then((result) => {
-      console.log("[islam] permission state:", result.state);
-      if (result.state === "granted") {
-        requestLocation();
-      } else {
-        if (locationRequest) locationRequest.hidden = false;
-      }
-    })
-    .catch((err) => {
-      console.log("[islam] permissions.query error:", err);
-      if (locationRequest) locationRequest.hidden = false;
-    });
 } else {
-  // No permissions API — show button
-  console.log("[islam] no permissions API — showing button");
-  if (locationRequest) locationRequest.hidden = false;
+  // Non-iOS (Android, desktop): call getCurrentPosition directly.
+  // If permission is already granted, the browser returns the position
+  // immediately without showing a prompt. If not decided, it shows the
+  // prompt. If denied, the error handler shows the button.
+  // This is more reliable than navigator.permissions.query, which can
+  // return "prompt" on Firefox even after the user has granted access.
+  console.log("[islam] non-iOS — auto-requesting geolocation");
+  requestLocation();
 }
 
 // Manual request button
