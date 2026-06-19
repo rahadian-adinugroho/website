@@ -113,34 +113,15 @@ function requestLocation() {
 // Render date immediately
 renderGregorianDate();
 
-// Decide whether to auto-request or show the button
-if (isIOS) {
-  // iOS Safari: permissions.query is unreliable for geolocation (may return
-  // "denied" even when never requested, which silently blocks getCurrentPosition).
-  // Always show the button — the user tap satisfies the gesture requirement.
-  console.log("[islam] iOS detected — showing button, no auto-request");
-  if (locationRequest) locationRequest.hidden = false;
-} else if (navigator.permissions && navigator.permissions.query) {
-  // Non-iOS: check permission state
-  navigator.permissions
-    .query({ name: "geolocation" as PermissionName })
-    .then((result) => {
-      console.log("[islam] permission state:", result.state);
-      if (result.state === "granted") {
-        requestLocation();
-      } else {
-        if (locationRequest) locationRequest.hidden = false;
-      }
-    })
-    .catch((err) => {
-      console.log("[islam] permissions.query error:", err);
-      if (locationRequest) locationRequest.hidden = false;
-    });
-} else {
-  // No permissions API — show button
-  console.log("[islam] no permissions API — showing button");
-  if (locationRequest) locationRequest.hidden = false;
-}
+// Auto-request geolocation on page load for all platforms.
+// If permission is already granted, the browser returns the position
+// immediately without showing a prompt. If not decided, it shows the
+// prompt. If denied, the error handler shows the button for manual retry.
+// Note: iOS Safari may cache a silent denial if getCurrentPosition is
+// called without a user gesture when permission is in "prompt" state —
+// but if permission is already granted, this works fine.
+console.log("[islam] auto-requesting geolocation");
+requestLocation();
 
 // Manual request button
 if (requestBtn) {
