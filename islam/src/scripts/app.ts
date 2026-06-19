@@ -44,15 +44,21 @@ function handleLocationSuccess(position: GeolocationPosition) {
   }
 }
 
-function handleLocationError() {
-  // Hide any stale error, show the request button for manual retry
-  if (locationError) locationError.hidden = true;
-  if (locationRequest) locationRequest.hidden = false;
+function handleLocationError(error: GeolocationPositionError) {
+  if (error.code === error.PERMISSION_DENIED) {
+    // Permission denied — show the request button for manual retry
+    if (locationError) locationError.hidden = true;
+    if (locationRequest) locationRequest.hidden = false;
+  } else {
+    // Timeout or position unavailable — show error with retry
+    if (locationRequest) locationRequest.hidden = true;
+    if (locationError) locationError.hidden = false;
+  }
 }
 
 function requestLocation() {
   if (!navigator.geolocation) {
-    handleLocationError();
+    if (locationRequest) locationRequest.hidden = false;
     return;
   }
 
@@ -60,9 +66,9 @@ function requestLocation() {
     handleLocationSuccess,
     handleLocationError,
     {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0,
+      enableHighAccuracy: false,
+      timeout: 20000,
+      maximumAge: 300000,
     }
   );
 }
@@ -78,7 +84,7 @@ if (requestBtn) {
   requestBtn.addEventListener("click", requestLocation);
 }
 
-// Retry button hides error and re-triggers request
+// Retry button re-triggers geolocation
 if (retryBtn) {
   retryBtn.addEventListener("click", function () {
     if (locationError) locationError.hidden = true;
