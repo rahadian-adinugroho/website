@@ -57,21 +57,33 @@ function handleLocationError(error: GeolocationPositionError) {
 
   if (error.code === error.PERMISSION_DENIED) {
     if (isIOS) {
-      // iOS Safari caches denials — once denied (even silently), it won't
-      // show the prompt again until the user resets permission in Settings.
       if (errorMsg) {
         errorMsg.innerHTML =
-          "Location access was denied. To fix this on iOS:<br>" +
-          "Settings → Safari → Location → Allow, then reload this page.<br>" +
-          "Or: Settings → Safari → Clear History and Website Data.";
+          "<strong>Location access denied.</strong><br><br>" +
+          "To fix this on iOS:<br>" +
+          "1. Settings → Privacy &amp; Security → Location Services → Enable Location Services<br>" +
+          "2. Scroll down to Safari → select \"While Using App\"<br>" +
+          "3. Reload this page<br><br>" +
+          "Or: Settings → Safari → Clear History and Website Data, then reload.";
       }
+      if (locationRequest) locationRequest.hidden = true;
+      if (locationError) locationError.hidden = false;
     } else {
-      // Permission denied — show the request button for manual retry
+      // Non-iOS — show the request button for manual retry
       if (locationError) locationError.hidden = true;
       if (locationRequest) locationRequest.hidden = false;
     }
+  } else if (error.code === error.POSITION_UNAVAILABLE) {
+    if (errorMsg) {
+      errorMsg.textContent = "Location unavailable. Please check your internet connection and GPS settings.";
+    }
+    if (locationRequest) locationRequest.hidden = true;
+    if (locationError) locationError.hidden = false;
   } else {
-    // Timeout or position unavailable — show error with retry
+    // Timeout
+    if (errorMsg) {
+      errorMsg.textContent = "Request timed out. Please try again.";
+    }
     if (locationRequest) locationRequest.hidden = true;
     if (locationError) locationError.hidden = false;
   }

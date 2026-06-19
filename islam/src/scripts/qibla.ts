@@ -2,12 +2,12 @@ import { Coordinates, Qibla } from "adhan";
 
 let qiblaBearing = 0;
 let currentHeading = 0;
-let isCompassActive = false;
 let isIOS = false;
 
 export function initQibla(lat: number, lng: number): void {
   const coordinates = new Coordinates(lat, lng);
   qiblaBearing = Qibla(coordinates);
+  console.log("[islam] qibla bearing:", qiblaBearing);
 
   // Check if iOS
   isIOS =
@@ -21,17 +21,35 @@ export function initQibla(lat: number, lng: number): void {
 function startCompass(): void {
   if (isIOS) {
     // iOS requires user gesture to request permission
-    // We expose requestCompassPermission separately
     return;
   }
 
-  // Non-iOS: listen directly
-  window.addEventListener("deviceorientation", handleOrientation);
-  isCompassActive = true;
+  // Non-iOS: try absolute orientation first, fall back to regular
+  if (typeof (window as any).DeviceOrientationEvent !== "undefined") {
+    window.addEventListener("deviceorientationabsolute", handleOrientation);
+    window.addEventListener("deviceorientation", handleOrientation);
+    console.log("[islam] compass listeners attached (non-iOS)");
+  }
 }
 
 function handleOrientation(event: DeviceOrientationEvent): void {
-  const heading = event.alpha; // 0-360, compass heading
+  let heading: number | null = null;
+
+  // iOS: webkitCompassHeading is the true compass heading (0 = north, clockwise)
+  const webkitHeading = (event as any).webkitCompassHeading;
+  if (typeof webkitHeading === "number" && !isNaN(webkitHeading)) {
+    heading = webkitHeading;
+  } else if (event.alpha !== null) {
+    // Android/other: alpha is counterclockwise, convert to compass heading
+    // Only use if event.absolute is true (means it's relative to Earth, not arbitrary)
+    if (event.absolute) {
+      heading = 360 - event.alpha;
+    } else {
+      // Non-absolute alpha is unreliable for compass — skip
+      return;
+    }
+  }
+
   if (heading !== null) {
     currentHeading = heading;
     updateArrow();
@@ -42,7 +60,10 @@ function updateArrow(): void {
   const arrow = document.getElementById("qibla-arrow");
   if (!arrow) return;
 
-  // The arrow points to Qibla relative to device heading
+  // Arrow points to Qibla relative to device heading
+  // qiblaBearing: direction to Mecca from north (clockwise)
+  // currentHeading: direction device top is pointing from north (clockwise)
+  // rotation: how much to rotate the arrow so it points to Qibla
   const rotation = qiblaBearing - currentHeading;
   arrow.style.transform = `rotate(${rotation}deg)`;
 }
@@ -51,15 +72,17 @@ export async function requestCompassPermission(): Promise<void> {
   if (!isIOS) return;
 
   try {
+    console.log("[islam] requesting iOS compass permission...");
     const permissionResult = await (
       DeviceOrientationEvent as any
     ).requestPermission();
+    console.log("[islam] compass permission:", permissionResult);
     if (permissionResult === "granted") {
       window.addEventListener("deviceorientation", handleOrientation);
-      isCompassActive = true;
+      console.log("[islam] compass listener attached (iOS)");
     }
   } catch (err) {
-    console.error("Compass permission error:", err);
+    console.error("[islam] compass permission error:", err);
   }
 }
 
@@ -73,5 +96,5 @@ function showCompass(): void {
 // Cleanup
 export function destroyQibla(): void {
   window.removeEventListener("deviceorientation", handleOrientation);
-  isCompassActive = false;
+  window.removeEventListener("deviceorientationabsolute", handleOrientation);
 }

@@ -6,11 +6,19 @@ import {
 } from "adhan";
 
 let prayerTimesDisplay: PrayerTimes | null = null;
-let currentLocation: Coordinates | null = null;
+let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+const PRAYER_NAMES: Record<string, string> = {
+  fajr: "Fajr",
+  sunrise: "Sunrise",
+  dhuhr: "Dhuhr",
+  asr: "Asr",
+  maghrib: "Maghrib",
+  isha: "Isha",
+};
 
 export function initPrayerTimes(lat: number, lng: number): void {
   const coordinates = new Coordinates(lat, lng);
-  currentLocation = coordinates;
 
   const params = CalculationMethod.Singapore();
   params.adjustments = {
@@ -28,6 +36,7 @@ export function initPrayerTimes(lat: number, lng: number): void {
 
   renderPrayerTimes();
   renderHijriDate(date);
+  startCountdown();
   showPrayerTimes();
 }
 
@@ -56,8 +65,69 @@ function renderPrayerTimes(): void {
     }
   }
 
-  // Highlight current and next prayer
   highlightPrayers(prayers);
+}
+
+function getNextPrayer(): { id: string; label: string; time: Date } | null {
+  if (!prayerTimesDisplay) return null;
+
+  const now = new Date();
+  const prayers: { id: string; label: string; time: Date }[] = [
+    { id: "fajr", label: "Fajr", time: prayerTimesDisplay.fajr },
+    { id: "sunrise", label: "Sunrise", time: prayerTimesDisplay.sunrise },
+    { id: "dhuhr", label: "Dhuhr", time: prayerTimesDisplay.dhuhr },
+    { id: "asr", label: "Asr", time: prayerTimesDisplay.asr },
+    { id: "maghrib", label: "Maghrib", time: prayerTimesDisplay.maghrib },
+    { id: "isha", label: "Isha", time: prayerTimesDisplay.isha },
+  ];
+
+  for (const prayer of prayers) {
+    if (prayer.time > now) {
+      return prayer;
+    }
+  }
+
+  // All prayers passed — next is tomorrow's Fajr
+  return null;
+}
+
+function startCountdown(): void {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+  updateCountdown();
+  countdownInterval = setInterval(updateCountdown, 1000);
+}
+
+function updateCountdown(): void {
+  const next = getNextPrayer();
+  const nameEl = document.getElementById("next-prayer-name");
+  const countdownEl = document.getElementById("next-prayer-countdown");
+
+  if (!next) {
+    if (nameEl) nameEl.textContent = "Fajr (tomorrow)";
+    if (countdownEl) countdownEl.textContent = "--:--:--";
+    return;
+  }
+
+  if (nameEl) nameEl.textContent = next.label;
+
+  const now = new Date();
+  const diff = next.time.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    if (countdownEl) countdownEl.textContent = "00:00:00";
+    return;
+  }
+
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+
+  if (countdownEl) {
+    countdownEl.textContent =
+      `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
 }
 
 function highlightPrayers(
@@ -65,7 +135,6 @@ function highlightPrayers(
 ): void {
   const now = new Date();
 
-  // Find the current prayer (last prayer whose time has passed)
   let currentIndex = -1;
   for (let i = prayers.length - 1; i >= 0; i--) {
     if (prayers[i].time <= now) {
@@ -74,7 +143,6 @@ function highlightPrayers(
     }
   }
 
-  // Find the next prayer (first prayer whose time hasn't passed yet)
   let nextIndex = -1;
   for (let i = 0; i < prayers.length; i++) {
     if (prayers[i].time > now) {
@@ -83,8 +151,6 @@ function highlightPrayers(
     }
   }
 
-  // If all prayers have passed for today, no current prayer (until midnight)
-  // If no prayer has started yet, no current prayer
   for (let i = 0; i < prayers.length; i++) {
     const row = document.getElementById(`prayer-row-${prayers[i].id}`);
     if (!row) continue;
@@ -127,15 +193,12 @@ function renderHijriDate(date: Date): void {
   if (!hijriEl) return;
 
   try {
-    // Use built-in Islamic calendar (more accurate than manual calculation)
-    // Intl already appends the era (AH), so no need to add it again
     hijriEl.textContent = new Intl.DateTimeFormat("en-US-u-ca-islamic", {
       day: "numeric",
       month: "long",
       year: "numeric",
     }).format(date);
   } catch {
-    // Fallback: Kuwaiti algorithm (tabular Islamic calendar)
     const gd = date.getDate();
     const gm = date.getMonth() + 1;
     const gy = date.getFullYear();
