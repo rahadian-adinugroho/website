@@ -91,10 +91,9 @@ The compass itself is a simple SVG arrow that rotates based on the difference be
 
 The app works, but there's more I'd like to add:
 
-- **Configurable calculation method.** Right now it's hardcoded to the Singapore/Kemenag method. A settings panel with localStorage persistence would let users pick their preferred method (MWL, ISNA, Egypt, etc.) and madhab (Shafi vs Hanafi for Asr).
+- **Configurable calculation method.** Right now it's hardcoded to the Singapore/Kemenag method (Fajr 20°, Isha 18°), which is accurate for Indonesia and Southeast Asia. But the astronomical calculations are universal — the sun position is correct for any location on Earth. What changes between regions is the *angles* used to define when each prayer begins. A user in Tokyo or Madrid will get times that are astronomically correct for their location, but using Indonesia's angles — Fajr will appear slightly earlier and Isha slightly later than what local mosques announce. A settings panel with localStorage persistence would let users pick their preferred method (MWL for Europe, ISNA for North America, etc.) and madhab (Shafi vs Hanafi for Asr).
+- **PWA with prayer notifications.** Making the app installable and sending a reminder before each prayer time. Android has supported web push notifications via service workers for years. iOS 16.4+ also supports web push, but with a catch: the user must manually "Add to Home Screen" first — there's no way to prompt for installation like Android. The site is already static and served over HTTPS, so it's mostly a web app manifest + service worker away from being a PWA.
 - **Additional prayers.** Dhuha, Tahajjud, the last third of the night. The adhan library supports these via `SunnahTimes`.
-- **Notifications.** A reminder before each prayer time. This would need the Notifications API and maybe a service worker.
-- **PWA support.** Installable on the home screen, works offline. The site is already static so it's mostly a manifest + service worker away.
 - **Qibla accuracy indicator.** Show how confident the compass reading is based on the accuracy value from the device orientation event.
 
 ## How This Was Built
