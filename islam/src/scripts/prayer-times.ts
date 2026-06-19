@@ -128,12 +128,12 @@ function renderHijriDate(date: Date): void {
 
   try {
     // Use built-in Islamic calendar (more accurate than manual calculation)
-    const hijriStr = new Intl.DateTimeFormat("en-US-u-ca-islamic", {
+    // Intl already appends the era (AH), so no need to add it again
+    hijriEl.textContent = new Intl.DateTimeFormat("en-US-u-ca-islamic", {
       day: "numeric",
       month: "long",
       year: "numeric",
     }).format(date);
-    hijriEl.textContent = `${hijriStr} AH`;
   } catch {
     // Fallback: Kuwaiti algorithm (tabular Islamic calendar)
     const gd = date.getDate();
