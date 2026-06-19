@@ -2,25 +2,17 @@
 import Layout from "../layouts/Layout.astro";
 import PrayerTimes from "../components/PrayerTimes.astro";
 import QiblaCompass from "../components/QiblaCompass.astro";
-
-const today = new Date();
-const gregorianDate = today.toLocaleDateString(undefined, {
-  weekday: "long",
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
 ---
 
 <Layout title="Prayer Times &amp; Qibla Compass — Islam">
-  <!-- Date display -->
+  <!-- Date display (populated client-side to respect timezone) -->
   <div class="text-center mb-6">
-    <p class="text-lg text-gray-700 dark:text-gray-300" id="gregorian-date">{gregorianDate}</p>
+    <p class="text-lg text-gray-700 dark:text-gray-300" id="gregorian-date">--</p>
     <p class="text-sm text-gray-500 dark:text-gray-400" id="hijri-date">--</p>
   </div>
 
-  <!-- Location request button (shown initially) -->
-  <div id="location-request" class="flex flex-col items-center gap-4 mt-8">
+  <!-- Location request button (hidden by default, shown only if permission denied) -->
+  <div id="location-request" hidden class="flex flex-col items-center gap-4 mt-8">
     <p class="text-gray-600 dark:text-gray-400 text-center">
       Allow location access to see prayer times and Qibla direction for your area.
     </p>
