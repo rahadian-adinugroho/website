@@ -48,9 +48,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       <slot />
     </main>
     <footer class="border-t border-zinc-200 mt-16">
-      <div class="max-w-2xl mx-auto px-4 py-6 text-center text-sm text-zinc-400 space-y-1">
+      <div class="max-w-2xl mx-auto px-4 py-6 text-center text-sm text-zinc-400 space-y-2">
         <p>© {new Date().getFullYear()} Rahadian Adinugroho</p>
         <p>All opinions expressed here are my own and do not represent my employer.</p>
+        <a
+          href="https://github.com/rahadian-adinugroho/website"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-zinc-600 transition-colors"
+        >
+          View source on GitHub
+        </a>
       </div>
     </footer>
   </body>
