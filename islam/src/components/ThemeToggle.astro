@@ -1,0 +1,57 @@
+<!-- ThemeToggle: cycles through light → dark → system -->
+<button id="theme-toggle" class="text-lg p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label="Toggle theme">
+  💻
+</button>
+
+<script>
+  const button = document.getElementById("theme-toggle");
+
+  function getSavedTheme() {
+    return localStorage.getItem("theme") || "system";
+  }
+
+  function applyTheme(theme) {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else if (theme === "light") {
+      document.documentElement.classList.remove("dark");
+    } else {
+      // system
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+  }
+
+  function getIcon(theme) {
+    if (theme === "light") return "\u2600\uFE0F";
+    if (theme === "dark") return "\u{1F319}";
+    return "\u{1F4BB}";
+  }
+
+  function saveAndApply(theme) {
+    localStorage.setItem("theme", theme);
+    applyTheme(theme);
+    if (button) button.textContent = getIcon(theme);
+  }
+
+  function nextTheme(current) {
+    if (current === "light") return "dark";
+    if (current === "dark") return "system";
+    return "light";
+  }
+
+  if (button) {
+    var initial = getSavedTheme();
+    button.textContent = getIcon(initial);
+    applyTheme(initial);
+
+    button.addEventListener("click", function () {
+      var current = getSavedTheme();
+      var next = nextTheme(current);
+      saveAndApply(next);
+    });
+  }
+</script>

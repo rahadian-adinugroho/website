@@ -1,0 +1,114 @@
+---
+import Layout from "../layouts/Layout.astro";
+import PrayerTimes from "../components/PrayerTimes.astro";
+import QiblaCompass from "../components/QiblaCompass.astro";
+
+const today = new Date();
+const gregorianDate = today.toLocaleDateString(undefined, {
+  weekday: "long",
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+---
+
+<Layout title="Prayer Times &amp; Qibla Compass — Islam">
+  <!-- Date display -->
+  <div class="text-center mb-6">
+    <p class="text-lg text-gray-700 dark:text-gray-300" id="gregorian-date">{gregorianDate}</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400" id="hijri-date">--</p>
+  </div>
+
+  <!-- Location request button (shown initially) -->
+  <div id="location-request" class="flex flex-col items-center gap-4 mt-8">
+    <p class="text-gray-600 dark:text-gray-400 text-center">
+      Allow location access to see prayer times and Qibla direction for your area.
+    </p>
+    <button id="request-location-btn" class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+      Request Location
+    </button>
+  </div>
+
+  <!-- Error message (hidden by default) -->
+  <div id="location-error" hidden class="mt-6 flex flex-col items-center gap-4">
+    <p class="text-red-600 dark:text-red-400 text-center">
+      Unable to access your location. Please check your browser permissions and try again.
+    </p>
+    <button id="retry-location-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
+      Retry
+    </button>
+  </div>
+
+  <!-- Prayer times -->
+  <PrayerTimes />
+
+  <!-- Qibla compass (mobile only) -->
+  <QiblaCompass />
+
+  <!-- App scripts -->
+  <script type="module">
+    import { initPrayerTimes } from "../scripts/prayer-times.ts";
+    import { initQibla, requestCompassPermission } from "../scripts/qibla.ts";
+
+    const requestBtn = document.getElementById("request-location-btn");
+    const retryBtn = document.getElementById("retry-location-btn");
+    const locationRequest = document.getElementById("location-request");
+    const locationError = document.getElementById("location-error");
+
+    function handleLocationSuccess(position: GeolocationPosition) {
+      const { latitude, longitude } = position.coords;
+
+      // Hide request UI
+      if (locationRequest) locationRequest.hidden = true;
+      if (locationError) locationError.hidden = true;
+
+      // Initialize features
+      initPrayerTimes(latitude, longitude);
+      initQibla(latitude, longitude);
+
+      // Check if iOS compass permission is needed
+      const compassBtn = document.getElementById("compass-permission-btn");
+      const isIOS = typeof (DeviceOrientationEvent as any)?.requestPermission === "function";
+      if (compassBtn && isIOS) {
+        compassBtn.hidden = false;
+        compassBtn.addEventListener("click", async () => {
+          await requestCompassPermission();
+          compassBtn.hidden = true;
+        });
+      }
+    }
+
+    function handleLocationError() {
+      if (locationRequest) locationRequest.hidden = true;
+      if (locationError) locationError.hidden = false;
+    }
+
+    function requestLocation() {
+      if (!navigator.geolocation) {
+        handleLocationError();
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        handleLocationSuccess,
+        handleLocationError,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      );
+    }
+
+    if (requestBtn) {
+      requestBtn.addEventListener("click", requestLocation);
+    }
+
+    if (retryBtn) {
+      retryBtn.addEventListener("click", function () {
+        if (locationError) locationError.hidden = true;
+        if (locationRequest) locationRequest.hidden = false;
+      });
+    }
+  </script>
+</Layout>

@@ -5,3 +5,7 @@ website:landing:
 website:blog:
   - changed-files:
     - any-glob-to-any-file: "blog/**"
+
+website:islam:
+  - changed-files:
+    - any-glob-to-any-file: "islam/**"
