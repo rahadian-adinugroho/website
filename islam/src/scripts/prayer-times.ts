@@ -3,7 +3,6 @@ import {
   CalculationMethod,
   PrayerTimes,
   Madhab,
-  HijriDate,
 } from "adhan";
 
 let prayerTimesDisplay: PrayerTimes | null = null;
@@ -124,7 +123,29 @@ function highlightPrayers(
 }
 
 function renderHijriDate(date: Date): void {
-  const hijriDate = new HijriDate(date);
+  // Kuwaiti algorithm (tabular Islamic calendar)
+  const gd = date.getDate();
+  const gm = date.getMonth() + 1;
+  const gy = date.getFullYear();
+
+  let jd = Math.floor((1461 * (gy + 4800 + Math.floor((gm - 14) / 12))) / 4) +
+    Math.floor((367 * (gm - 2 - 12 * Math.floor((gm - 14) / 12))) / 12) -
+    Math.floor((3 * Math.floor((gy + 4900 + Math.floor((gm - 14) / 12)) / 100)) / 4) +
+    gd - 32075;
+
+  jd = jd - 1948440 + 10632;
+  const n = Math.floor((jd - 1) / 10631);
+  jd = jd - 10631 * n + 354;
+
+  const j = Math.floor((10985 - jd) / 5316) * Math.floor((50 * jd) / 17719) +
+    Math.floor(jd / 5670) * Math.floor((43 * jd) / 15238);
+  jd = jd - Math.floor((30 - j) / 15) * Math.floor((17719 * j) / 50) -
+    Math.floor(j / 16) * Math.floor((15238 * j) / 43) + 29;
+
+  const hm = Math.floor((24 * jd) / 709);
+  const hd = jd - Math.floor((709 * hm) / 24);
+  const hy = 30 * n + j - 30;
+
   const months = [
     "Muharram",
     "Safar",
@@ -139,10 +160,10 @@ function renderHijriDate(date: Date): void {
     "Dhu al-Qi'dah",
     "Dhu al-Hijjah",
   ];
-  const monthName = months[hijriDate.month - 1] || "";
+  const monthName = months[hm - 1] || "";
   const hijriEl = document.getElementById("hijri-date");
   if (hijriEl) {
-    hijriEl.textContent = `${hijriDate.day} ${monthName} ${hijriDate.year} AH`;
+    hijriEl.textContent = `${hd} ${monthName} ${hy} AH`;
   }
 }
 
