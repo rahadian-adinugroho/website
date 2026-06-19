@@ -53,10 +53,23 @@ function handleLocationSuccess(position: GeolocationPosition) {
 function handleLocationError(error: GeolocationPositionError) {
   console.log("[islam] geolocation error:", error.code, error.message);
 
+  const errorMsg = document.getElementById("location-error-msg");
+
   if (error.code === error.PERMISSION_DENIED) {
-    // Permission denied — show the request button for manual retry
-    if (locationError) locationError.hidden = true;
-    if (locationRequest) locationRequest.hidden = false;
+    if (isIOS) {
+      // iOS Safari caches denials — once denied (even silently), it won't
+      // show the prompt again until the user resets permission in Settings.
+      if (errorMsg) {
+        errorMsg.innerHTML =
+          "Location access was denied. To fix this on iOS:<br>" +
+          "Settings → Safari → Location → Allow, then reload this page.<br>" +
+          "Or: Settings → Safari → Clear History and Website Data.";
+      }
+    } else {
+      // Permission denied — show the request button for manual retry
+      if (locationError) locationError.hidden = true;
+      if (locationRequest) locationRequest.hidden = false;
+    }
   } else {
     // Timeout or position unavailable — show error with retry
     if (locationRequest) locationRequest.hidden = true;

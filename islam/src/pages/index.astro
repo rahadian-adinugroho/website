@@ -23,7 +23,7 @@ import QiblaCompass from "../components/QiblaCompass.astro";
 
   <!-- Error message (hidden by default) -->
   <div id="location-error" hidden class="mt-6 flex flex-col items-center gap-4">
-    <p class="text-red-600 dark:text-red-400 text-center">
+    <p class="text-red-600 dark:text-red-400 text-center" id="location-error-msg">
       Unable to access your location. Please check your browser permissions and try again.
     </p>
     <button id="retry-location-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
