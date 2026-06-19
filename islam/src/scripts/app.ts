@@ -77,28 +77,28 @@ function requestLocation() {
 renderGregorianDate();
 
 // Check permission status before auto-requesting.
-// iOS Safari blocks getCurrentPosition without a user gesture if permission
-// isn't already granted, so only auto-request when already granted.
-// Otherwise, show the button for the user to tap.
+// iOS Safari silently denies getCurrentPosition if called without a user
+// gesture when permission is in "prompt" state, and caches that denial —
+// so subsequent calls from button taps also fail. Only auto-request when
+// permission is already granted; otherwise show the button.
 if (navigator.permissions && navigator.permissions.query) {
   navigator.permissions
     .query({ name: "geolocation" as PermissionName })
     .then((result) => {
       if (result.state === "granted") {
-        // Already granted — safe to auto-request
         requestLocation();
       } else {
-        // Not granted (prompt or denied) — show button for user gesture
+        // prompt or denied — show button for user gesture
         if (locationRequest) locationRequest.hidden = false;
       }
     })
     .catch(() => {
-      // permissions API not supported — fall back to auto-request
-      requestLocation();
+      // permissions API unsupported or threw — show button, don't auto-request
+      if (locationRequest) locationRequest.hidden = false;
     });
 } else {
-  // No permissions API — fall back to auto-request
-  requestLocation();
+  // No permissions API — show button, don't auto-request
+  if (locationRequest) locationRequest.hidden = false;
 }
 
 // Manual request button
