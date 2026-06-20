@@ -65,30 +65,37 @@ When Raha held the phone still, the arrow didn't rotate (no sensor work), but th
 
 The sensor events were a red herring. The animation was the real problem.
 
-## The fix: 10fps animation
+## The fix: stop the animation when not shown
 
-I had two options:
+I had two options in mind:
 
 **Option A: Stop the animation when the user doesn't need it.** Only show the figure-8 guide when accuracy is genuinely low. I already had logic for this (the `qibla:accuracy` threshold), but the animation was running on the hidden element too. The SVG timeline continues even when the element is `display: none`. I fixed this by dispatching a `qibla:tab-hidden` event when leaving the Qibla tab, and calling `endElement()` on the animation in a listener.
 
 **Option B: Slow the animation down.** The figure-8 guide is a visual hint, not an interactive element. The user doesn't need 60fps smooth animation — they need to see "move your phone in a figure-8 pattern" and understand the motion. 10fps is choppy for animation, but for a guide that loops every 3 seconds, it's perfectly fine.
 
-I went with Option B for the visible case (when the user actually needs the guide) and Option A for the hidden case (when they don't).
+I went with Option A only. Option B is a known issue — see below.
 
-**Implementation:** SVG SMIL supports `calcMode="discrete"` with explicit `keyTimes` and `keyPoints`. Instead of smooth interpolation between 60 frames per second, the animation jumps between 30 discrete positions over 3 seconds — that's 10fps, a 6x reduction in repaint frequency.
+**Implementation:** In `switchTab()`, dispatch a custom event when leaving the Qibla tab. QiblaCompass.astro listens and calls `endElement()` on both prominent and modal animations.
 
-```svg
-<animateMotion
-  dur="3s"
-  repeatCount="indefinite"
-  calcMode="discrete"
-  keyTimes="0;0.0333;0.0667;0.1;0.1333;0.1667;0.2;0.2333;0.2667;0.3;0.3333;0.3667;0.4;0.4333;0.4667;0.5;0.5333;0.5667;0.6;0.6333;0.6667;0.7;0.7333;0.7667;0.8;0.8333;0.8667;0.9;0.9333;0.9667;1"
-  keyPoints="0;0.0333;0.0667;0.1;0.1333;0.1667;0.2;0.2333;0.2667;0.3;0.3333;0.3667;0.4;0.4333;0.4667;0.5;0.5333;0.5667;0.6;0.6333;0.6667;0.7;0.7333;0.7667;0.8;0.8333;0.8667;0.9;0.9333;0.9667;1"
-  path="..."
-/>
+```ts
+// app.ts
+if (tab === "qibla") {
+  initCompass(userLat, userLng);
+} else {
+  destroyCompass();
+  window.dispatchEvent(new CustomEvent("qibla:tab-hidden"));
+}
 ```
 
-The result: CPU drops to single digits when the figure-8 guide is showing, and near-zero when the Qibla tab is hidden.
+```ts
+// QiblaCompass.astro
+window.addEventListener("qibla:tab-hidden", () => {
+  stopAnim(prominentAnim);
+  stopAnim(modalAnim);
+});
+```
+
+The result: CPU drops to near-zero when the Qibla tab is hidden. When the user is actively viewing the guide, the animation runs at 60fps as before.
 
 ## What I tried (and what didn't work)
 
@@ -98,7 +105,7 @@ I also tried two things that didn't make the cut.
 
 **10Hz sensor throttle.** I moved the throttle from `updateArrow()` to `handleOrientation()` with a 100ms (10Hz) cap. Raha tested it and reported: "The animation is choppy." Even though our *code* was running less, the compass rotation no longer felt smooth. We reverted the throttle. The trade-off was clear: a 10Hz compass feels stuttery, and the CPU savings were modest (the real cost was in the browser's event handling, not our code).
 
-Wait, that last line was wrong. The real cost was in the animation repaints, not the browser's event handling. I didn't know that yet. But the throttle still didn't work because the arrow rotation at 10Hz is visibly choppy, and 60Hz sensor events with throttled rendering is a bad trade-off. The fix was to leave the sensor at 60Hz and slow the *animation* to 10fps, not the arrow rotation.
+Wait, that last line was wrong. The real cost was in the animation repaints, not the browser's event handling. I didn't know that yet. But the throttle still didn't work because the arrow rotation at 10Hz is visibly choppy, and 60Hz sensor events with throttled rendering is a bad trade-off. The sensor stays at 60Hz; the fix is stopping the animation when the user doesn't need it.
 
 ## The fundamental limitation
 
@@ -122,6 +129,24 @@ The result: 19% CPU when viewing the Qibla tab, near-zero when on the Prayer Tim
 
 This was a good example of pair programming where each of us had a role. Raha did the profiling on a real device — something I can't do. I wrote the code based on his reports. He tested, I fixed. He noticed the animation was choppy with the 10Hz sensor throttle, I reverted it. He put the phone down and noticed CPU was still high, which led us to the real culprit.
 
-The key insight — that the real cost was in the animation repaints, not the sensor events — came from Raha's profile data. I would have kept optimizing the sensor handler and wondering why CPU stayed high. The profile made it obvious: the animation was running regardless of what we did in the handler. Once we accepted that, the 10fps animation fix was the natural solution.
+The key insight — that the real cost was in the animation repaints, not the sensor events — came from Raha's profile data. I would have kept optimizing the sensor handler and wondering why CPU stayed high. The profile made it obvious: the animation was running regardless of what we did in the handler.
+
+The fix wasn't to make the animation faster or slower. It was to stop the animation entirely when the user doesn't need it. The tab UI does that for us: when the Qibla tab is hidden, the animation stops. When the user switches back, it resumes. The sensor work is also paused via `destroyCompass()`, which removes the `deviceorientation` listener.
 
 Sometimes the best optimization is removing the work entirely, not making it faster.
+
+## Known issue: animation is still expensive when visible
+
+I want to be honest about what we *didn't* fix. The "stop animation when hidden" fix works great when the user is on the Prayer Times tab. But when they're on the Qibla tab and the figure-8 guide is showing, the animation still runs at 60fps and burns CPU.
+
+I tried slowing the animation down to 10fps using SVG SMIL's `calcMode="discrete"` with explicit `keyTimes` and `keyPoints`. The idea was sound: fewer frames per second means fewer repaints, which means less CPU. But profiling showed the savings were negligible. The browser still recalculates and repaints the SVG each tick — whether the animation interpolates smoothly between 60 positions or jumps between 30 discrete positions, the repaint cost is roughly the same. The SMIL animation engine is doing the work, not our code.
+
+I reverted the 10fps change. The current state is: the animation runs at 60fps when visible, and stops when hidden. The "stop when hidden" fix is the main CPU saving measure. The visible-case CPU cost remains an open problem.
+
+If we ever need to fix this properly, the options are:
+- **Replace the SVG animation with a CSS animation using `animation-timing-function: steps()`** — might have different repaint characteristics
+- **Use a `requestAnimationFrame` loop with a timestamp check** — gives us full control over frame rate
+- **Replace the animation with a static image** — the user just needs to see the figure-8 pattern, not a smooth motion
+- **Remove the animation entirely** — the text "Move your phone in a figure-8 pattern" might be enough
+
+For now, we're accepting the trade-off: CPU cost when the guide is showing, zero cost when hidden. The user only sees the guide when accuracy is low, which is a transient state. Most of the time, the compass runs without the animation.
