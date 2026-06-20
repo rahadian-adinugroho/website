@@ -55,22 +55,70 @@ export const DEFAULT_SETTINGS: Settings = {
 export function detectMethodFromLocale(
   locale: string,
 ): Exclude<CalcMethod, "automatic"> {
-  if (/^(id|ms)_?(ID|MY|SG)/i.test(locale)) return "singapore";
-  if (/^ar_?(SA|YE|OM|AE|KW|BH|QA)/i.test(locale)) return "ummAlQura";
-  if (/^ur_PK/i.test(locale) || /^bn_BD/i.test(locale)) return "karachi";
-  if (/^fa_IR/i.test(locale)) return "tehran";
-  if (/^en_?(GB|IE|AU|NZ|ZA)/i.test(locale)) return "muslimWorldLeague";
+  // Match language-only (id, ms, ar, ur) or language-region (id-ID, ms-MY, etc.)
+  if (/^id/i.test(locale) || /^ms/i.test(locale)) return "singapore";
+  if (/^ar/i.test(locale)) return "ummAlQura";
+  if (/^ur/i.test(locale) || /^bn/i.test(locale)) return "karachi";
+  if (/^fa/i.test(locale)) return "tehran";
+  if (/^tr/i.test(locale)) return "muslimWorldLeague";
+  if (/^en/i.test(locale)) return "muslimWorldLeague";
   return "muslimWorldLeague";
 }
 
-/** Resolve "automatic" to a concrete method based on the browser locale. */
+/** Detect method from coordinates (more reliable than locale). */
+export function detectMethodFromCoordinates(
+  lat: number,
+  lng: number,
+): Exclude<CalcMethod, "automatic"> {
+  // Indonesia: lat -11 to 6, lng 95 to 141
+  if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) return "singapore";
+  // Malaysia/Singapore/Brunei: lat 1 to 7, lng 100 to 119
+  if (lat >= 1 && lat <= 7 && lng >= 100 && lng <= 119) return "singapore";
+  // Arabian Peninsula: lat 12 to 37, lng 34 to 60
+  if (lat >= 12 && lat <= 37 && lng >= 34 && lng <= 60) return "ummAlQura";
+  // Pakistan: lat 24 to 37, lng 61 to 78
+  if (lat >= 24 && lat <= 37 && lng >= 61 && lng <= 78) return "karachi";
+  // Iran: lat 25 to 40, lng 44 to 63
+  if (lat >= 25 && lat <= 40 && lng >= 44 && lng <= 63) return "tehran";
+  // North America (rough): lat 25 to 70, lng -170 to -50
+  if (lat >= 25 && lat <= 70 && lng >= -170 && lng <= -50)
+    return "northAmerica";
+  return "muslimWorldLeague";
+}
+
+/** Resolve "automatic" to a concrete method. Tries locale first, then coordinates. */
 export function resolveMethod(
   settings: Settings,
+  lat?: number,
+  lng?: number,
 ): Exclude<CalcMethod, "automatic"> {
-  if (settings.calcMethod === "automatic") {
-    return detectMethodFromLocale(navigator.language);
+  if (settings.calcMethod !== "automatic") {
+    return settings.calcMethod;
   }
-  return settings.calcMethod;
+  const localeMethod = detectMethodFromLocale(navigator.language);
+  console.log(
+    "[islam] locale:",
+    navigator.language,
+    "→ locale method:",
+    getAdhanMethodName(localeMethod),
+  );
+  // If locale fell back to MWL and we have coordinates, try coordinate-based
+  if (
+    localeMethod === "muslimWorldLeague" &&
+    lat !== undefined &&
+    lng !== undefined
+  ) {
+    const coordMethod = detectMethodFromCoordinates(lat, lng);
+    console.log(
+      "[islam] coords:",
+      lat,
+      lng,
+      "→ coord method:",
+      getAdhanMethodName(coordMethod),
+    );
+    return coordMethod;
+  }
+  return localeMethod;
 }
 
 /** Human-readable names for each method. */

@@ -3,7 +3,6 @@ import {
   CalculationMethod,
   PrayerTimes,
   Madhab,
-  SunnahTimes,
 } from "adhan";
 import type { Settings, PrayerId } from "../lib/settings";
 import {
@@ -12,7 +11,6 @@ import {
 } from "../lib/settings";
 
 let prayerTimesDisplay: PrayerTimes | null = null;
-let sunnahTimesDisplay: SunnahTimes | null = null;
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 let currentSettings: Settings | null = null;
 let currentSunnahData: {
@@ -39,9 +37,9 @@ export function initPrayerTimes(
 
   const coordinates = new Coordinates(lat, lng);
 
-  // Resolve calculation method from settings or locale
+  // Resolve calculation method from settings or locale with coordinate fallback
   const resolved = currentSettings
-    ? resolveMethod(currentSettings)
+    ? resolveMethod(currentSettings, lat, lng)
     : "singapore";
   const params = getAdhanCalculationMethod(resolved);
 
@@ -70,16 +68,35 @@ export function initPrayerTimes(
   const date = new Date();
   prayerTimesDisplay = new PrayerTimes(coordinates, date, params);
 
-  // Calculate sunnah times
-  sunnahTimesDisplay = new SunnahTimes(prayerTimesDisplay);
+  // Calculate sunnah times manually to avoid potential bugs in adhan's
+  // SunnahTimes class (which was returning the same value for both
+  // middleOfNight and lastThirdOfNight).
+  const maghrib = prayerTimesDisplay.maghrib;
+  const fajr = prayerTimesDisplay.fajr;
+
+  // Night duration in milliseconds. Fajr is on the next day, so the
+  // difference should be positive (~10.5 hours). If somehow fajr is on
+  // the same day (before maghrib), add 24 hours.
+  let nightDurationMs = fajr.getTime() - maghrib.getTime();
+  if (nightDurationMs < 0) {
+    nightDurationMs += 24 * 60 * 60 * 1000;
+  }
 
   // Dhuha = sunrise + 20 minutes
   const dhuha = new Date(prayerTimesDisplay.sunrise.getTime() + 20 * 60 * 1000);
 
+  // Middle of the night = maghrib + nightDuration / 2
+  const middleOfNight = new Date(maghrib.getTime() + nightDurationMs / 2);
+
+  // Last third of the night = maghrib + nightDuration * 2/3
+  const lastThirdOfNight = new Date(
+    maghrib.getTime() + (nightDurationMs * 2) / 3,
+  );
+
   currentSunnahData = {
     dhuha,
-    middleOfNight: sunnahTimesDisplay.middleOfNight,
-    lastThirdOfNight: sunnahTimesDisplay.lastThirdOfNight,
+    middleOfNight,
+    lastThirdOfNight,
   };
 
   renderPrayerTimes();

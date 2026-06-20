@@ -136,10 +136,7 @@ renderGregorianDate();
 initSettings();
 
 // Wire gear button
-document.getElementById("settings-gear-btn")?.addEventListener("click", () => {
-  console.log("[islam] gear button clicked");
-  openSettings();
-});
+document.getElementById("settings-gear-btn")?.addEventListener("click", openSettings);
 
 // Re-init prayer times when settings change
 window.addEventListener("settings:changed", ((e: CustomEvent) => {

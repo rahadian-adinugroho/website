@@ -9,9 +9,7 @@
   <div id="settings-backdrop" class="absolute inset-0 bg-black/50 dark:bg-black/60"></div>
 
   <!-- Panel -->
-  <div id="settings-container" class="absolute bottom-0 left-0 right-0 md:relative md:max-w-md md:mx-auto md:my-8 bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl shadow-xl max-h-[85vh] flex flex-col transform translate-y-0 transition-transform duration-300 ease-out">
-    <!-- Drag handle (mobile) -->
-    <div class="md:hidden w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3"></div>
+  <div id="settings-container" class="absolute bottom-0 left-0 right-0 md:relative md:max-w-md md:mx-auto md:my-8 bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl shadow-xl max-h-[85vh] flex flex-col transition-transform duration-300 ease-out">
 
     <!-- Header -->
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
@@ -71,14 +69,6 @@
         </div>
       </section>
 
-      <!-- Section: Prayer Times -->
-      <section>
-        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Prayer Times</h3>
-        <div id="settings-prayer-times-list" class="divide-y divide-gray-100 dark:divide-gray-800">
-          <!-- Populated by JS -->
-        </div>
-      </section>
-
       <!-- Section: Sunnah Prayers -->
       <section>
         <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Sunnah Prayers</h3>
@@ -109,10 +99,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  /* Slide-up animation when panel becomes visible */
-  #settings-panel:not([hidden]) #settings-container {
-    transform: translateY(0);
-  }
-</style>

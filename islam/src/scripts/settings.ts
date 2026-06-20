@@ -5,9 +5,7 @@ import {
   saveSettings,
   resolveMethod,
   getAdhanMethodName,
-  detectMethodFromLocale,
 } from "../lib/settings";
-import { getAllPrayerTimes } from "./prayer-times";
 
 // --- Module-level state ---
 
@@ -27,7 +25,6 @@ export function getCurrentSettings(): Settings {
 }
 
 export function openSettings(): void {
-  console.log("[islam] openSettings called, isOpen:", isOpen);
   if (isOpen) return;
   isOpen = true;
 
@@ -36,9 +33,6 @@ export function openSettings(): void {
 
   // Populate current settings into the form
   applySettingsToForm(currentSettings);
-
-  // Populate prayer times
-  populatePrayerTimesList();
 
   // Update detected method label
   updateDetectedMethod();
@@ -113,13 +107,6 @@ function wireEvents(): void {
     });
   });
 
-  // Listen for prayer:updated to refresh times shown in the panel
-  window.addEventListener("prayer:updated", () => {
-    if (isOpen) {
-      populatePrayerTimesList();
-      updateSunnahTimes();
-    }
-  });
 }
 
 function applySettingsToForm(settings: Settings): void {
@@ -143,58 +130,6 @@ function updateDetectedMethod(): void {
   if (!el) return;
   const resolved = resolveMethod(currentSettings);
   el.textContent = `Using: ${getAdhanMethodName(resolved)}`;
-}
-
-function populatePrayerTimesList(): void {
-  const container = $("settings-prayer-times-list");
-  if (!container) return;
-
-  const times = getAllPrayerTimes();
-  if (times.length === 0) {
-    container.innerHTML =
-      '<p class="text-sm text-gray-400 py-2">Grant location access to see prayer times</p>';
-    return;
-  }
-
-  const timeFormatter = new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: undefined,
-  });
-
-  container.innerHTML = times
-    .map(
-      (p) => `
-    <div class="flex items-center justify-between py-2 ${p.isSunnah ? "opacity-60" : ""}">
-      <span class="text-sm ${p.isSunnah ? "text-gray-500 dark:text-gray-400 italic" : "text-gray-900 dark:text-gray-100"}">${p.label}</span>
-      <span class="text-sm font-mono text-gray-600 dark:text-gray-400">${timeFormatter.format(p.time)}</span>
-    </div>
-  `,
-    )
-    .join("");
-}
-
-function updateSunnahTimes(): void {
-  const times = getAllPrayerTimes();
-  const timeFormatter = new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: undefined,
-  });
-
-  const sunnahMap: Record<string, string> = {};
-  for (const p of times) {
-    if (p.isSunnah) {
-      sunnahMap[p.id] = timeFormatter.format(p.time);
-    }
-  }
-
-  ["dhuha", "middleOfNight", "lastThirdOfNight"].forEach((id) => {
-    const el = $(`settings-${id}-time`);
-    if (el && sunnahMap[id]) {
-      el.textContent = sunnahMap[id];
-    }
-  });
 }
 
 function dispatchChanged(): void {
