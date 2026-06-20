@@ -5,6 +5,7 @@ let currentHeading = 0;
 let currentAccuracy: number | null = null;
 let isIOS = false;
 let lastRotation = 0;
+let wasAligned = false;
 
 export function getCurrentAccuracy(): number | null {
   return currentAccuracy;
@@ -90,6 +91,18 @@ function updateArrow(): void {
   // Deadband: ignore tiny changes (< 0.5°) to prevent jitter from sensor noise
   if (Math.abs(delta) < 0.5) return;
   lastRotation = newRotation;
+
+  // Vibrate when phone becomes aligned with Qibla (transition only)
+  const isAligned =
+    Math.abs(newRotation % 360) < 5 || Math.abs(newRotation % 360) > 355;
+  if (isAligned && !wasAligned) {
+    try {
+      navigator.vibrate?.(100);
+    } catch {
+      // Vibration API not available (iOS Safari, desktop)
+    }
+  }
+  wasAligned = isAligned;
 
   arrow.style.transform = `rotate(${newRotation}deg)`;
 }
