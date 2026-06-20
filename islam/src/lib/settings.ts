@@ -66,26 +66,76 @@ export function detectMethodFromLocale(
   return "muslimWorldLeague";
 }
 
-/** Detect method from coordinates (more reliable than locale). */
+/** Detect method from coordinates (more reliable than locale).
+ * Muslim-majority regions covered: Egypt, Turkey, Iran, Pakistan/Afghanistan/
+ * Bangladesh (Karachi), Indonesia, Malaysia/Singapore/Brunei, Arabian Peninsula
+ * (Umm al-Qura), Middle East, North Africa, West Africa, East Africa, Central
+ * Asia, China Muslim regions, Thailand/Myanmar, Philippines, North America.
+ * Order matters for overlapping regions — more specific methods first. */
 export function detectMethodFromCoordinates(
   lat: number,
   lng: number,
 ): Exclude<CalcMethod, "automatic"> {
-  // Indonesia: lat -11 to 6, lng 95 to 141
-  if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) return "singapore";
-  // Malaysia/Singapore/Brunei: lat 1 to 7, lng 100 to 119
-  if (lat >= 1 && lat <= 7 && lng >= 100 && lng <= 119) return "singapore";
-  // Arabian Peninsula: lat 12 to 37, lng 34 to 60
-  if (lat >= 12 && lat <= 37 && lng >= 34 && lng <= 60) return "ummAlQura";
-  // Pakistan: lat 24 to 37, lng 61 to 78
-  if (lat >= 24 && lat <= 37 && lng >= 61 && lng <= 78) return "karachi";
-  // Iran: lat 25 to 40, lng 44 to 63
-  if (lat >= 25 && lat <= 40 && lng >= 44 && lng <= 63) return "tehran";
-  // Turkey: lat 36 to 42, lng 26 to 45
+  // === Specific methods (higher priority for overlapping regions) ===
+
+  // Egypt
+  if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 36) return "egyptian";
+
+  // Turkey (Diyanet)
   if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) return "turkey";
-  // North America (rough): lat 25 to 70, lng -170 to -50
+
+  // Iran (Tehran)
+  if (lat >= 25 && lat <= 40 && lng >= 45 && lng <= 63) return "tehran";
+
+  // Karachi region: Pakistan, Afghanistan, Bangladesh
+  if (lat >= 20 && lat <= 39 && lng >= 61 && lng <= 93) return "karachi";
+
+  // Indonesia (Singapore/Kemenag)
+  if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) return "singapore";
+
+  // Malaysia / Singapore / Brunei (Singapore method)
+  if (lat >= 1 && lat <= 7 && lng >= 100 && lng <= 119) return "singapore";
+
+  // Arabian Peninsula (Umm al-Qura)
+  if (lat >= 12 && lat <= 37 && lng >= 34 && lng <= 60) return "ummAlQura";
+
+  // === Muslim World League fallback regions ===
+
+  // Middle East: Iraq, Syria, Jordan, Lebanon, Palestine
+  if (lat >= 29 && lat <= 38 && lng >= 34 && lng <= 44)
+    return "muslimWorldLeague";
+
+  // North America (ISNA)
   if (lat >= 25 && lat <= 70 && lng >= -170 && lng <= -50)
     return "northAmerica";
+
+  // North Africa + West Africa
+  // Morocco, Algeria, Tunisia, Libya, Nigeria, Senegal, Mali, etc.
+  if (lat >= 0 && lat <= 37 && lng >= -18 && lng <= 25)
+    return "muslimWorldLeague";
+
+  // East Africa: Sudan, Somalia, Ethiopia, Eritrea, Djibouti
+  if (lat >= -2 && lat <= 22 && lng >= 21 && lng <= 51)
+    return "muslimWorldLeague";
+
+  // Central Asia: Uzbekistan, Tajikistan, Turkmenistan, Kyrgyzstan,
+  // southern Kazakhstan
+  if (lat >= 35 && lat <= 55 && lng >= 46 && lng <= 87)
+    return "muslimWorldLeague";
+
+  // China Muslim regions: Xinjiang, Ningxia, Gansu
+  if (lat >= 35 && lat <= 50 && lng >= 73 && lng <= 105)
+    return "muslimWorldLeague";
+
+  // Thailand / Myanmar
+  if (lat >= 5 && lat <= 28 && lng >= 92 && lng <= 101)
+    return "muslimWorldLeague";
+
+  // Philippines
+  if (lat >= 5 && lat <= 19 && lng >= 117 && lng <= 127)
+    return "muslimWorldLeague";
+
+  // Fallback for unhandled regions
   return "muslimWorldLeague";
 }
 
