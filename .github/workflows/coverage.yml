@@ -1,0 +1,45 @@
+name: Test Coverage
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "islam/**"
+  workflow_dispatch:
+
+concurrency:
+  group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: islam
+
+      - name: Run tests with coverage
+        run: bun run test:coverage
+        working-directory: islam
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        run: bun run scripts/comment-coverage.ts
+        working-directory: islam
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
