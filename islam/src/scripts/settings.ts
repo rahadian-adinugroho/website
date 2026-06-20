@@ -1,6 +1,7 @@
 import { t, getLocale, setLocale, detectLocale } from "../i18n/i18n";
 import type { Locale } from "../i18n/i18n";
 import type { Settings, CalcMethod, SunnahPrayer } from "../lib/settings";
+import { getUserLocation } from "../lib/location";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
@@ -116,6 +117,11 @@ function wireEvents(): void {
     updateDetectedMethod();
   });
 
+  // Refresh "Using: X" label when user location changes
+  window.addEventListener("location:updated", () => {
+    updateDetectedMethod();
+  });
+
   // Checkbox changes (sunnah prayers)
   document.querySelectorAll<HTMLInputElement>('input[name^="settings-sunnah-"]').forEach((input) => {
     input.addEventListener("change", () => {
@@ -158,8 +164,19 @@ function applySettingsToForm(settings: Settings): void {
 function updateDetectedMethod(): void {
   const el = $("settings-detected-method");
   if (!el) return;
-  const resolved = resolveMethod(currentSettings);
-  el.textContent = t("settings.calcMethod.using", { method: getAdhanMethodName(resolved) });
+
+  if (currentSettings.calcMethod === "automatic") {
+    const loc = getUserLocation();
+    const resolved = resolveMethod(
+      currentSettings,
+      loc?.lat,
+      loc?.lng,
+    );
+    el.textContent = t("settings.calcMethod.using", { method: getAdhanMethodName(resolved) });
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
 }
 
 function dispatchChanged(): void {

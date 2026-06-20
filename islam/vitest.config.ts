@@ -8,7 +8,7 @@ export default defineConfig({
       provider: "istanbul",
       reporter: ["text", "json", "html", "lcov"],
       reportsDirectory: "./coverage",
-      include: ["src/lib/settings.ts", "src/i18n/i18n.ts"],
+      include: ["src/lib/settings.ts", "src/i18n/i18n.ts", "src/lib/location.ts"],
     },
   },
 });

@@ -6,6 +6,7 @@ import {
   requestCompassPermission,
 } from "./qibla";
 import { loadSettings } from "../lib/settings";
+import { setUserLocation } from "../lib/location";
 import { initSettings, openSettings, closeSettings } from "./settings";
 
 const requestBtn = document.getElementById("request-location-btn");
@@ -89,6 +90,11 @@ function handleLocationSuccess(position: GeolocationPosition) {
   // Store for later use by Qibla tab
   userLat = latitude;
   userLng = longitude;
+
+  // Make location available to other modules (e.g., settings panel)
+  setUserLocation(latitude, longitude);
+  // Refresh the "Using: X" label in the settings panel (if open)
+  window.dispatchEvent(new CustomEvent("location:updated"));
 
   // Hide all request/error UI
   if (locationRequest) locationRequest.hidden = true;
