@@ -68,11 +68,11 @@
             <path d="M 30 50 C 50 20, 80 20, 100 50 C 120 80, 150 80, 170 50 C 150 20, 120 20, 100 50 C 80 80, 50 80, 30 50 Z"
                   fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"
                   class="text-gray-400 dark:text-gray-500" />
-            <!-- Phone icon tracing the path -->
-            <rect x="-12" y="-8" width="24" height="16" rx="3" fill="#16a34a" opacity="0.9">
-              <animateMotion id="modal-guide-anim" begin="indefinite" dur="3s" repeatCount="indefinite" rotate="auto"
-                path="M 30 50 C 50 20, 80 20, 100 50 C 120 80, 150 80, 170 50 C 150 20, 120 20, 100 50 C 80 80, 50 80, 30 50 Z" />
-            </rect>
+          <!-- Phone icon tracing the path -->
+          <rect x="-12" y="-8" width="24" height="16" rx="3" fill="#16a34a" opacity="0.9">
+            <animateMotion id="modal-guide-anim" begin="indefinite" dur="3s" repeatCount="indefinite" rotate="auto"
+              path="M 30 50 C 50 20, 80 20, 100 50 C 120 80, 150 80, 170 50 C 150 20, 120 20, 100 50 C 80 80, 50 80, 30 50 Z" />
+          </rect>
           </svg>
           <p class="text-xs text-gray-600 dark:text-gray-400 text-center" data-i18n="qibla.calibrationGuide">
             Move your phone in a figure-8 pattern to calibrate the compass. This helps the device map the local magnetic field.
@@ -125,6 +125,16 @@
       }
     }) as EventListener);
   }
+
+  // --- Stop animations when Qibla tab is hidden ---
+  // The <animateMotion> elements have repeatCount="indefinite", so once
+  // started they loop forever. Even when the parent element is hidden
+  // via display:none, the animation timeline continues, causing
+  // continuous repaints and CPU drain on iOS Safari.
+  window.addEventListener("qibla:tab-hidden", () => {
+    stopAnim(prominentAnim);
+    stopAnim(modalAnim);
+  });
 
   // --- Modal open/close (shared for both platforms) ---
   if (finePrint && modal && modalClose && modalBackdrop) {
