@@ -1,3 +1,5 @@
+import { t, getLocale, setLocale } from "../i18n/i18n";
+import type { Locale } from "../i18n/i18n";
 import type { Settings, CalcMethod, SunnahPrayer } from "../lib/settings";
 import {
   DEFAULT_SETTINGS,
@@ -91,6 +93,14 @@ function wireEvents(): void {
     });
   });
 
+  // Language radio changes
+  document.querySelectorAll<HTMLInputElement>('input[name="settings-lang"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      if (!input.checked) return;
+      setLocale(input.value as Locale);
+    });
+  });
+
   // Checkbox changes (sunnah prayers)
   document.querySelectorAll<HTMLInputElement>('input[name^="settings-sunnah-"]').forEach((input) => {
     input.addEventListener("change", () => {
@@ -123,13 +133,20 @@ function applySettingsToForm(settings: Settings): void {
     );
     if (cb) cb.checked = settings.sunnahPrayers[key];
   });
+
+  // Set language radio
+  const activeLang = getLocale();
+  const langRadio = document.querySelector<HTMLInputElement>(
+    `input[name="settings-lang"][value="${activeLang}"]`,
+  );
+  if (langRadio) langRadio.checked = true;
 }
 
 function updateDetectedMethod(): void {
   const el = $("settings-detected-method");
   if (!el) return;
   const resolved = resolveMethod(currentSettings);
-  el.textContent = `Using: ${getAdhanMethodName(resolved)}`;
+  el.textContent = t("settings.calcMethod.using", { method: getAdhanMethodName(resolved) });
 }
 
 function dispatchChanged(): void {

@@ -1,3 +1,4 @@
+import { t, getLocale } from "../i18n/i18n";
 import {
   Coordinates,
   CalculationMethod,
@@ -21,14 +22,16 @@ let currentSunnahData: {
   lastThirdOfNight: Date;
 } | null = null;
 
-const PRAYER_NAMES: Record<string, string> = {
-  fajr: "Fajr",
-  sunrise: "Sunrise",
-  dhuhr: "Dhuhr",
-  asr: "Asr",
-  maghrib: "Maghrib",
-  isha: "Isha",
-};
+function getPrayerLabels(): Record<string, string> {
+  return {
+    fajr: t("prayer.fajr"),
+    sunrise: t("prayer.sunrise"),
+    dhuhr: t("prayer.dhuhr"),
+    asr: t("prayer.asr"),
+    maghrib: t("prayer.maghrib"),
+    isha: t("prayer.isha"),
+  };
+}
 
 export function initPrayerTimes(
   lat: number,
@@ -102,20 +105,21 @@ export function getAllPrayerTimes(): {
 }[] {
   if (!prayerTimesDisplay) return [];
 
+  const labels = getPrayerLabels();
   const times: { id: PrayerId; label: string; time: Date; isSunnah: boolean }[] = [
-    { id: "fajr", label: "Fajr", time: prayerTimesDisplay.fajr, isSunnah: false },
-    { id: "sunrise", label: "Sunrise", time: prayerTimesDisplay.sunrise, isSunnah: false },
-    { id: "dhuhr", label: "Dhuhr", time: prayerTimesDisplay.dhuhr, isSunnah: false },
-    { id: "asr", label: "Asr", time: prayerTimesDisplay.asr, isSunnah: false },
-    { id: "maghrib", label: "Maghrib", time: prayerTimesDisplay.maghrib, isSunnah: false },
-    { id: "isha", label: "Isha", time: prayerTimesDisplay.isha, isSunnah: false },
+    { id: "fajr", label: labels.fajr, time: prayerTimesDisplay.fajr, isSunnah: false },
+    { id: "sunrise", label: labels.sunrise, time: prayerTimesDisplay.sunrise, isSunnah: false },
+    { id: "dhuhr", label: labels.dhuhr, time: prayerTimesDisplay.dhuhr, isSunnah: false },
+    { id: "asr", label: labels.asr, time: prayerTimesDisplay.asr, isSunnah: false },
+    { id: "maghrib", label: labels.maghrib, time: prayerTimesDisplay.maghrib, isSunnah: false },
+    { id: "isha", label: labels.isha, time: prayerTimesDisplay.isha, isSunnah: false },
   ];
 
   if (currentSunnahData) {
     // Insert Dhuha after Sunrise
     times.splice(2, 0, {
       id: "dhuha",
-      label: "Dhuha",
+      label: t("prayer.dhuha"),
       time: currentSunnahData.dhuha,
       isSunnah: true,
     });
@@ -123,13 +127,13 @@ export function getAllPrayerTimes(): {
     times.push(
       {
         id: "middleOfNight",
-        label: "Middle of the Night",
+        label: t("prayer.middleOfNight"),
         time: currentSunnahData.middleOfNight,
         isSunnah: true,
       },
       {
         id: "lastThirdOfNight",
-        label: "Last Third of the Night",
+        label: t("prayer.lastThirdOfNight"),
         time: currentSunnahData.lastThirdOfNight,
         isSunnah: true,
       },
@@ -220,7 +224,7 @@ function updateCountdown(): void {
   if (!next) {
     // All today's prayers (including enabled sunnah) have passed.
     // Show countdown to tomorrow's Fajr.
-    if (nameEl) nameEl.textContent = "Fajr (tomorrow)";
+    if (nameEl) nameEl.textContent = t("prayer.tomorrow", { name: t("prayer.fajr") });
     if (countdownEl && prayerTimesDisplay) {
       // Tomorrow's Fajr ≈ today's Fajr + 24 hours
       const tomorrowFajr = new Date(
@@ -326,7 +330,7 @@ function renderHijriDate(date: Date): void {
   try {
     // Use islamic-tbla (tabular Islamic calendar, astronomical algorithm)
     // to avoid the Firefox warning about unspecified calendar variant.
-    hijriEl.textContent = new Intl.DateTimeFormat("en-US-u-ca-islamic-tbla", {
+    hijriEl.textContent = new Intl.DateTimeFormat(`${getLocale()}-u-ca-islamic-tbla`, {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -362,20 +366,7 @@ function renderHijriDate(date: Date): void {
     const hd = jd - Math.floor((709 * hm) / 24);
     const hy = 30 * n + j - 30;
 
-    const months = [
-      "Muharram",
-      "Safar",
-      "Rabi' al-Awwal",
-      "Rabi' al-Thani",
-      "Jumada al-Awwal",
-      "Jumada al-Thani",
-      "Rajab",
-      "Sha'ban",
-      "Ramadan",
-      "Shawwal",
-      "Dhu al-Qi'dah",
-      "Dhu al-Hijjah",
-    ];
+    const months = t("hijri.months").split("|");
     const monthName = months[hm - 1] || "";
     hijriEl.textContent = `${hd} ${monthName} ${hy} AH`;
   }
@@ -387,3 +378,10 @@ function showPrayerTimes(): void {
     el.removeAttribute("hidden");
   }
 }
+
+// Re-render Hijri date when language changes
+window.addEventListener("locale:changed", () => {
+  if (prayerTimesDisplay) {
+    renderHijriDate(new Date());
+  }
+});

@@ -13,8 +13,8 @@
 
     <!-- Header -->
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
-      <h2 id="settings-title" class="text-lg font-semibold text-gray-900 dark:text-gray-100">Settings</h2>
-      <button id="settings-close-btn" type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" aria-label="Close settings">
+      <h2 id="settings-title" class="text-lg font-semibold text-gray-900 dark:text-gray-100" data-i18n="settings.title">Settings</h2>
+      <button id="settings-close-btn" type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" aria-label="Close settings" data-i18n-aria-label="aria.closeSettings">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -23,78 +23,93 @@
 
     <!-- Body (scrollable) -->
     <div class="overflow-y-auto p-6 space-y-6">
+      <!-- Section: Language -->
+      <section>
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3" data-i18n="settings.language">Language</h3>
+        <div class="space-y-1">
+          <label class="settings-option flex items-center gap-3 py-2 cursor-pointer">
+            <input type="radio" name="settings-lang" value="en" class="accent-primary-600 shrink-0" />
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.lang.en">English</span>
+          </label>
+          <label class="settings-option flex items-center gap-3 py-2 cursor-pointer">
+            <input type="radio" name="settings-lang" value="id" class="accent-primary-600 shrink-0" />
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.lang.id">Bahasa Indonesia</span>
+          </label>
+        </div>
+      </section>
+
       <!-- Section: Calculation Method -->
       <section>
-        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Calculation Method</h3>
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3" data-i18n="settings.calcMethod">Calculation Method</h3>
 
         <div class="space-y-1">
           <!-- Automatic -->
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="automatic">
             <input type="radio" name="settings-calc-method" value="automatic" checked class="accent-primary-600 shrink-0" />
             <div class="flex flex-col">
-              <span class="text-sm text-gray-900 dark:text-gray-100">Automatic</span>
-              <span id="settings-detected-method" class="text-xs text-gray-400 dark:text-gray-500">Using: --</span>
+              <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.automatic">Automatic</span>
+              <span id="settings-detected-method" class="text-xs text-gray-400 dark:text-gray-500" data-i18n="settings.calcMethod.using">Using: --</span>
             </div>
           </label>
 
           <!-- Explicit methods -->
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="singapore">
             <input type="radio" name="settings-calc-method" value="singapore" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">Singapore / Kemenag</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.singapore">Singapore / Kemenag</span>
           </label>
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="ummAlQura">
             <input type="radio" name="settings-calc-method" value="ummAlQura" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">Umm al-Qura</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.ummAlQura">Umm al-Qura</span>
           </label>
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="muslimWorldLeague">
             <input type="radio" name="settings-calc-method" value="muslimWorldLeague" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">Muslim World League</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.muslimWorldLeague">Muslim World League</span>
           </label>
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="egyptian">
             <input type="radio" name="settings-calc-method" value="egyptian" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">Egyptian</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.egyptian">Egyptian</span>
           </label>
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="karachi">
             <input type="radio" name="settings-calc-method" value="karachi" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">Karachi</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.karachi">Karachi</span>
           </label>
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="northAmerica">
             <input type="radio" name="settings-calc-method" value="northAmerica" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">North America (ISNA)</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.northAmerica">North America (ISNA)</span>
           </label>
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="tehran">
             <input type="radio" name="settings-calc-method" value="tehran" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">Tehran</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.tehran">Tehran</span>
           </label>
           <label class="settings-option flex items-center gap-3 py-2 cursor-pointer" data-method="turkey">
             <input type="radio" name="settings-calc-method" value="turkey" class="accent-primary-600 shrink-0" />
-            <span class="text-sm text-gray-900 dark:text-gray-100">Turkey (Diyanet)</span>
+            <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="settings.calcMethod.turkey">Turkey (Diyanet)</span>
           </label>
         </div>
       </section>
 
       <!-- Section: Sunnah Prayers -->
       <section>
-        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Sunnah Prayers</h3>
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3" data-i18n="settings.sunnahPrayers">Sunnah Prayers</h3>
         <div class="space-y-1">
           <label class="settings-option flex items-center justify-between py-2 cursor-pointer" data-sunnah="dhuha">
             <div class="flex items-center gap-3">
               <input type="checkbox" name="settings-sunnah-dhuha" class="accent-primary-600 shrink-0" />
-              <span class="text-sm text-gray-900 dark:text-gray-100">Dhuha</span>
+              <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="prayer.dhuha">Dhuha</span>
             </div>
             <span id="settings-dhuha-time" class="text-xs text-gray-400 dark:text-gray-500 font-mono">--:--</span>
           </label>
           <label class="settings-option flex items-center justify-between py-2 cursor-pointer" data-sunnah="middleOfNight">
             <div class="flex items-center gap-3">
               <input type="checkbox" name="settings-sunnah-middleOfNight" class="accent-primary-600 shrink-0" />
-              <span class="text-sm text-gray-900 dark:text-gray-100">Middle of the Night</span>
+              <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="prayer.middleOfNight">Middle of the Night</span>
             </div>
             <span id="settings-middleOfNight-time" class="text-xs text-gray-400 dark:text-gray-500 font-mono">--:--</span>
           </label>
           <label class="settings-option flex items-center justify-between py-2 cursor-pointer" data-sunnah="lastThirdOfNight">
             <div class="flex items-center gap-3">
               <input type="checkbox" name="settings-sunnah-lastThirdOfNight" class="accent-primary-600 shrink-0" />
-              <span class="text-sm text-gray-900 dark:text-gray-100">Last Third of the Night</span>
+              <span class="text-sm text-gray-900 dark:text-gray-100" data-i18n="prayer.lastThirdOfNight">Last Third of the Night</span>
             </div>
             <span id="settings-lastThirdOfNight-time" class="text-xs text-gray-400 dark:text-gray-500 font-mono">--:--</span>
           </label>
