@@ -126,6 +126,16 @@
     }) as EventListener);
   }
 
+  // --- Stop animations when Qibla tab is hidden ---
+  // The <animateMotion> elements have repeatCount="indefinite", so once
+  // started they loop forever. Even when the parent element is hidden
+  // via display:none, the animation timeline continues, causing
+  // continuous repaints and CPU drain on iOS Safari.
+  window.addEventListener("qibla:tab-hidden", () => {
+    stopAnim(prominentAnim);
+    stopAnim(modalAnim);
+  });
+
   // --- Modal open/close (shared for both platforms) ---
   if (finePrint && modal && modalClose && modalBackdrop) {
     function openModal() {

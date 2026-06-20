@@ -69,6 +69,11 @@ function switchTab(tab: "prayer-times" | "qibla") {
     }
   } else {
     destroyCompass();
+    // Stop SVG <animateMotion> animations that may still be running
+    // on the hidden Qibla tab. Without this, the animation timeline
+    // continues even though the element is display:none, causing
+    // continuous repaints and CPU drain (observed on iOS Safari).
+    window.dispatchEvent(new CustomEvent("qibla:tab-hidden"));
   }
 }
 
