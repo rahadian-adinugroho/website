@@ -88,21 +88,25 @@ function updateArrow(): void {
   let delta = ((target - lastRotation) % 360 + 540) % 360 - 180;
   const newRotation = lastRotation + delta;
 
-  // Deadband: ignore tiny changes (< 0.5°) to prevent jitter from sensor noise
-  if (Math.abs(delta) < 0.5) return;
-  lastRotation = newRotation;
-
-  // Vibrate when phone becomes aligned with Qibla (transition only)
-  const isAligned =
-    Math.abs(newRotation % 360) < 5 || Math.abs(newRotation % 360) > 355;
+  // Alignment check runs BEFORE the deadband return so it fires even
+  // when delta is tiny (i.e. the phone is precisely aligned).
+  // target = qiblaBearing - currentHeading — near 0° means pointing at Qibla.
+  const isAligned = Math.abs(target) < 5 || Math.abs(target) > 355;
   if (isAligned && !wasAligned) {
-    try {
-      navigator.vibrate?.(100);
-    } catch {
-      // Vibration API not available (iOS Safari, desktop)
+    if (typeof navigator.vibrate === "function") {
+      console.log("[islam] vibrating! target:", target, "delta:", delta);
+      navigator.vibrate(100);
+    } else {
+      console.log(
+        "[islam] Vibration API not supported on this browser (expected on iOS Safari)",
+      );
     }
   }
   wasAligned = isAligned;
+
+  // Deadband: ignore tiny changes (< 0.5°) to prevent jitter from sensor noise
+  if (Math.abs(delta) < 0.5) return;
+  lastRotation = newRotation;
 
   arrow.style.transform = `rotate(${newRotation}deg)`;
 }
