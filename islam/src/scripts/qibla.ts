@@ -63,8 +63,15 @@ function updateArrow(): void {
   // Arrow points to Qibla relative to device heading
   // qiblaBearing: direction to Mecca from north (clockwise)
   // currentHeading: direction device top is pointing from north (clockwise)
-  // rotation: how much to rotate the arrow so it points to Qibla
-  const rotation = qiblaBearing - currentHeading;
+  let rotation = qiblaBearing - currentHeading;
+
+  // Normalize to [-180, 180] to take the shortest angular path.
+  // Without this, when the device heading crosses 0°/360° (north), the
+  // rotation jumps by ~360° and the CSS transition animates the full
+  // spin instead of the shortest path.
+  while (rotation > 180) rotation -= 360;
+  while (rotation < -180) rotation += 360;
+
   arrow.style.transform = `rotate(${rotation}deg)`;
 }
 
