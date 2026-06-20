@@ -75,8 +75,9 @@ export function initPrayerTimes(
   // Fajr for the night duration calculation.
   sunnahTimesDisplay = new SunnahTimes(prayerTimesDisplay);
 
-  // Dhuha = sunrise + 20 minutes
-  const dhuha = new Date(prayerTimesDisplay.sunrise.getTime() + 20 * 60 * 1000);
+  // Dhuha = sunrise + 25 minutes (precautionary margin to ensure sunrise
+  // is fully past before praying Dhuha)
+  const dhuha = new Date(prayerTimesDisplay.sunrise.getTime() + 25 * 60 * 1000);
 
   currentSunnahData = {
     dhuha,
@@ -301,7 +302,9 @@ function renderHijriDate(date: Date): void {
   if (!hijriEl) return;
 
   try {
-    hijriEl.textContent = new Intl.DateTimeFormat("en-US-u-ca-islamic", {
+    // Use islamic-tbla (tabular Islamic calendar, astronomical algorithm)
+    // to avoid the Firefox warning about unspecified calendar variant.
+    hijriEl.textContent = new Intl.DateTimeFormat("en-US-u-ca-islamic-tbla", {
       day: "numeric",
       month: "long",
       year: "numeric",
