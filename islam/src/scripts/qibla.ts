@@ -3,6 +3,7 @@ import { Coordinates, Qibla } from "adhan";
 let qiblaBearing = 0;
 let currentHeading = 0;
 let isIOS = false;
+let lastRotation = 0;
 
 export function initQibla(lat: number, lng: number): void {
   const coordinates = new Coordinates(lat, lng);
@@ -63,9 +64,21 @@ function updateArrow(): void {
   // Arrow points to Qibla relative to device heading
   // qiblaBearing: direction to Mecca from north (clockwise)
   // currentHeading: direction device top is pointing from north (clockwise)
-  // rotation: how much to rotate the arrow so it points to Qibla
-  const rotation = qiblaBearing - currentHeading;
-  arrow.style.transform = `rotate(${rotation}deg)`;
+  const target = qiblaBearing - currentHeading;
+
+  // Choose the equivalent angle closest to the last applied rotation so
+  // the CSS transition always takes the shortest path. Without this,
+  // normalizing the target to [-180, 180] each frame can cause the value
+  // to oscillate between +180° and -180° (same visual direction, different
+  // CSS values) when sensor noise puts the raw value near the boundary.
+  let delta = ((target - lastRotation) % 360 + 540) % 360 - 180;
+  const newRotation = lastRotation + delta;
+
+  // Deadband: ignore tiny changes (< 0.5°) to prevent jitter from sensor noise
+  if (Math.abs(delta) < 0.5) return;
+  lastRotation = newRotation;
+
+  arrow.style.transform = `rotate(${newRotation}deg)`;
 }
 
 export async function requestCompassPermission(): Promise<void> {
