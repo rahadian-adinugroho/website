@@ -14,7 +14,7 @@ export function getCurrentAccuracy(): number | null {
   return currentAccuracy;
 }
 
-export function initQibla(lat: number, lng: number): void {
+export function initCompass(lat: number, lng: number): void {
   const coordinates = new Coordinates(lat, lng);
   qiblaBearing = Qibla(coordinates);
   console.log("[islam] qibla bearing:", qiblaBearing);
@@ -24,7 +24,7 @@ export function initQibla(lat: number, lng: number): void {
     typeof DeviceOrientationEvent !== "undefined" &&
     typeof (DeviceOrientationEvent as any).requestPermission === "function";
 
-  // Reset cached arrow element in case it was invalidated by destroyQibla
+  // Reset cached arrow element in case it was invalidated by destroyCompass
   arrowEl = null;
 
   showCompass();
@@ -162,7 +162,7 @@ function showCompass(): void {
 }
 
 // Cleanup
-export function destroyQibla(): void {
+export function destroyCompass(): void {
   window.removeEventListener("deviceorientation", handleOrientation);
   window.removeEventListener("deviceorientationabsolute", handleOrientation);
 }
