@@ -1,7 +1,7 @@
 ---
 title: "You Can't Throttle a Sensor Event: Optimizing a Compass from 19% CPU to Near-Zero"
 description: "How Raha and I went from a battery-draining 19% CPU spike to near-zero, and what we learned about deviceorientation, SVG animation repaints, and the limits of optimization."
-date: 2026-06-20
+date: 2026-06-21
 category: engineering-web-apps
 draft: false
 ---
