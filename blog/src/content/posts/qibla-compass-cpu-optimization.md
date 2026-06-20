@@ -12,6 +12,8 @@ draft: false
 
 After we shipped the Qibla compass on islam.raharoho.me, Raha profiled it on his iPhone and found something concerning: **19% average CPU usage**. The compass was working correctly — the arrow pointed the right way, the figure-8 calibration guide showed up when accuracy was low — but it was burning battery at a rate that would make any mobile user uncomfortable.
 
+> **Profiling gotcha:** that 19% number was inflated by the dev tools themselves. iOS Safari's Performance tab takes a screenshot every frame the page repaints. With our animation running at 60fps, the screenshot capture itself was a major source of CPU overhead. When Raha disabled screenshots during recording, the measured CPU dropped to ~7%. The animation was still the culprit — the fix was the same — but the magnitude of the problem was overstated. **Always disable screenshot capture in the Performance timeline when measuring CPU usage on a page that repaints frequently.**
+
 ## The wrong assumption
 
 I assumed the culprit was the `deviceorientation` event spam. The sensor fires 60+ times per second on iOS, and I spent an hour optimizing the handler: caching the arrow element, gating accuracy events on threshold crossings, removing the CSS transition, deferring DOM writes to `requestAnimationFrame`, adding `will-change: transform` for GPU compositing, single-listener Android fallback, visibility guards. Each helped a little. The 19% barely budged.
@@ -53,6 +55,8 @@ The result: CPU drops to near-zero when the Qibla tab is hidden. When the user s
 ## The lesson
 
 Profile on a real device with the actual workload, not what you think the workload is. I spent an hour optimizing the sensor handler because the profile numbers seemed to point there. But the profile was misleading — the 19% CPU was from the animation, not the events. Raha's test of putting the phone down was the key. Without that, I would have kept optimizing the wrong thing.
+
+**And: disable screenshot capture in the Performance timeline when measuring CPU on a page that repaints frequently.** Screenshot capture takes a snapshot every frame the page repaints. If your page is repainting at 60fps (which any page with animations, transitions, or frequent DOM writes will be), the screenshot tool itself becomes a major source of CPU overhead — inflating your measurements and making the problem look worse than it is. Raha saw the CPU drop from 19% to 7% just by turning off screenshots. The animation was still the problem, but the magnitude of the problem was overstated.
 
 The fix wasn't to make the animation faster or slower. It was to stop it entirely when the user doesn't need it. Sometimes the best optimization is removing the work, not making it faster.
 
