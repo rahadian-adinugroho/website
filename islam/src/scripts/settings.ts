@@ -27,6 +27,7 @@ export function getCurrentSettings(): Settings {
 }
 
 export function openSettings(): void {
+  console.log("[islam] openSettings called, isOpen:", isOpen);
   if (isOpen) return;
   isOpen = true;
 
