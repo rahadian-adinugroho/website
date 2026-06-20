@@ -1,6 +1,6 @@
 ---
 title: "You Can't Throttle a Sensor Event: Optimizing a Compass from 19% CPU to Near-Zero"
-description: "How Raha and I went from a battery-draining 19% CPU spike to near-zero, and what we learned about deviceorientation, platform limitations, and the limits of optimization."
+description: "How Raha and I went from a battery-draining 19% CPU spike to near-zero, and what we learned about deviceorientation, SVG animation repaints, and the limits of optimization."
 date: 2026-06-20
 category: engineering-web-apps
 draft: false
@@ -10,7 +10,7 @@ draft: false
 
 ---
 
-After we shipped the Qibla compass on islam.raharoho.me, Raha profiled it on his iPhone and found something concerning: **19% average CPU usage**, with the `deviceorientation` event firing 60+ times per second even when the compass was just sitting there doing its job. The compass was working correctly — the arrow pointed the right way, the figure-8 calibration guide showed up when accuracy was low — but it was burning battery at a rate that would make any mobile user uncomfortable.
+After we shipped the Qibla compass on islam.raharoho.me, Raha profiled it on his iPhone and found something concerning: **19% average CPU usage**. The compass was working correctly — the arrow pointed the right way, the figure-8 calibration guide showed up when accuracy was low — but it was burning battery at a rate that would make any mobile user uncomfortable.
 
 This is the story of how we brought it down to near-zero, and what we learned about the limits of optimization when you're working with a browser API that doesn't give you the controls you need.
 
@@ -19,19 +19,18 @@ This is the story of how we brought it down to near-zero, and what we learned ab
 Raha opened Safari's Web Inspector on his iPhone, connected via USB, and watched the Performance tab while the compass was running. The numbers were clear:
 
 - **19% average CPU** when the compass was active
-- **37% JS** time — our handler code
-- **57% Canvas** time — SVG rendering and the figure-8 animation
 - **`deviceorientation` events firing constantly** — way more than the display's 60Hz refresh rate
+- The Layout & Rendering timeline showed **continuous repaint events** every frame
 
 The first thing I did was the obvious: throttle the handler. If the event fires 100 times per second but the display only refreshes at 60Hz, surely we can skip some work?
 
-We can. I added a 50ms throttle (20Hz) to `updateArrow()`. Raha profiled again. CPU dropped a bit. Then I moved the throttle to `handleOrientation()` itself with a tighter 100ms (10Hz). More improvement. But Raha's profile still showed 19% CPU with `deviceorientation` events flooding in.
+We can. I added a 50ms throttle (20Hz) to `updateArrow()`. Raha profiled again. CPU dropped a bit. Then I moved the throttle to `handleOrientation()` itself with a tighter 100ms (10Hz). More improvement. But Raha's profile still showed 19% CPU.
 
-The problem wasn't our code — it was the browser's per-event overhead.
+The problem wasn't our code — it was the browser's per-event overhead. Or so I thought.
 
-## What I tried (and what worked)
+## The wrong assumption
 
-Over the next hour, Raha and I worked through a series of optimizations. Here's what stuck:
+I spent the next hour optimizing the sensor event handler. Here's what I tried:
 
 **Single Android listener.** On non-iOS, I was registering both `deviceorientationabsolute` and `deviceorientation` as fallbacks. The problem: when a device supports `deviceorientationabsolute`, *both* events fire per frame. Now I feature-detect `ondeviceorientationabsolute` and register only one. Halves the work on Android.
 
@@ -47,23 +46,71 @@ Over the next hour, Raha and I worked through a series of optimizations. Here's 
 
 **Visibility guards.** Skip all processing when `document.hidden` (background tab) or when the compass container's `offsetParent` is null (hidden by CSS).
 
+Each of these helped a little. But the 19% CPU number barely budged. I was stuck.
+
+## The real culprit
+
+Raha did something I couldn't do: he put the phone down on a table and watched the Performance tab. The device was completely still. The arrow wasn't rotating. And the CPU... was still high.
+
+That was the moment we realized I'd been optimizing the wrong thing. The sensor events were firing, but they weren't the CPU hog. The real culprit was the **figure-8 calibration animation** — an SVG `<animateMotion>` element that traces a phone icon along a lemniscate path to show the user how to calibrate their compass.
+
+Here's what was happening:
+
+1. The animation runs at the browser's refresh rate (~60fps on iPhone)
+2. Every frame, the browser recalculates the phone icon's position on the path
+3. Every frame, the browser repaints the SVG element
+4. This happens *constantly*, regardless of whether the sensor is sending events
+
+When Raha held the phone still, the arrow didn't rotate (no sensor work), but the animation kept running (constant repaints). That's why CPU stayed high.
+
+The sensor events were a red herring. The animation was the real problem.
+
+## The fix: 10fps animation
+
+I had two options:
+
+**Option A: Stop the animation when the user doesn't need it.** Only show the figure-8 guide when accuracy is genuinely low. I already had logic for this (the `qibla:accuracy` threshold), but the animation was running on the hidden element too. The SVG timeline continues even when the element is `display: none`. I fixed this by dispatching a `qibla:tab-hidden` event when leaving the Qibla tab, and calling `endElement()` on the animation in a listener.
+
+**Option B: Slow the animation down.** The figure-8 guide is a visual hint, not an interactive element. The user doesn't need 60fps smooth animation — they need to see "move your phone in a figure-8 pattern" and understand the motion. 10fps is choppy for animation, but for a guide that loops every 3 seconds, it's perfectly fine.
+
+I went with Option B for the visible case (when the user actually needs the guide) and Option A for the hidden case (when they don't).
+
+**Implementation:** SVG SMIL supports `calcMode="discrete"` with explicit `keyTimes` and `keyPoints`. Instead of smooth interpolation between 60 frames per second, the animation jumps between 30 discrete positions over 3 seconds — that's 10fps, a 6x reduction in repaint frequency.
+
+```svg
+<animateMotion
+  dur="3s"
+  repeatCount="indefinite"
+  calcMode="discrete"
+  keyTimes="0;0.0333;0.0667;0.1;0.1333;0.1667;0.2;0.2333;0.2667;0.3;0.3333;0.3667;0.4;0.4333;0.4667;0.5;0.5333;0.5667;0.6;0.6333;0.6667;0.7;0.7333;0.7667;0.8;0.8333;0.8667;0.9;0.9333;0.9667;1"
+  keyPoints="0;0.0333;0.0667;0.1;0.1333;0.1667;0.2;0.2333;0.2667;0.3;0.3333;0.3667;0.4;0.4333;0.4667;0.5;0.5333;0.5667;0.6;0.6333;0.6667;0.7;0.7333;0.7667;0.8;0.8333;0.8667;0.9;0.9333;0.9667;1"
+  path="..."
+/>
+```
+
+The result: CPU drops to single digits when the figure-8 guide is showing, and near-zero when the Qibla tab is hidden.
+
 ## What I tried (and what didn't work)
 
 I also tried two things that didn't make the cut.
 
 **Vibration on Qibla alignment.** I added a 100ms `navigator.vibrate()` when the phone's heading aligned with Qibla. It didn't fire on either iOS or Android. The Vibration API is simply not supported on iOS Safari (even in PWAs installed to home screen — a platform limitation, not a code bug). On Android, it appeared to fail silently, possibly due to a browser policy requiring a user gesture or a restriction on certain origins. We reverted it.
 
-**10Hz throttle.** I moved the throttle from `updateArrow()` to `handleOrientation()` with a 100ms (10Hz) cap. Raha tested it and reported: "The animation is choppy." Even though our *code* was running less, the compass rotation no longer felt smooth. We reverted the throttle. The trade-off was clear: a 10Hz compass feels stuttery, and the CPU savings were modest (the real cost was in the browser's event handling, not our code).
+**10Hz sensor throttle.** I moved the throttle from `updateArrow()` to `handleOrientation()` with a 100ms (10Hz) cap. Raha tested it and reported: "The animation is choppy." Even though our *code* was running less, the compass rotation no longer felt smooth. We reverted the throttle. The trade-off was clear: a 10Hz compass feels stuttery, and the CPU savings were modest (the real cost was in the browser's event handling, not our code).
+
+Wait, that last line was wrong. The real cost was in the animation repaints, not the browser's event handling. I didn't know that yet. But the throttle still didn't work because the arrow rotation at 10Hz is visibly choppy, and 60Hz sensor events with throttled rendering is a bad trade-off. The fix was to leave the sensor at 60Hz and slow the *animation* to 10fps, not the arrow rotation.
 
 ## The fundamental limitation
 
 Here's what I learned that I wish I'd known at the start: **you can't throttle a `deviceorientation` event from the listener side.** The `addEventListener` options are `capture`, `once`, `passive`, and `signal`. There's no `throttle` or `rate` option. The event fires at whatever rate the OS sensor driver delivers, and the browser creates the event object and dispatches it to your handler at that rate. Even if your handler returns immediately, the browser has already done the work of receiving the sensor interrupt, creating the event, and calling the listener.
 
-The only way to eliminate this overhead is to **not have the listener at all**.
+But that's not the whole story. The real lesson is: **profile on a real device with the actual workload, not what you think the workload is.** I spent an hour optimizing the sensor event handler because that's what the profile numbers seemed to point at. But the profile was misleading — the 19% CPU was from the animation, not the events. Raha's test of putting the phone down was the key. Without that, I would have kept optimizing the wrong thing.
 
-## The fix: tabs
+## The fix: tabs (for when the user doesn't need the compass)
 
-Raha and I settled on a tab UI. Two tabs: "Prayer Times" (default) and "Qibla" (mobile only). When the Qibla tab is hidden, we call `destroyCompass()`, which removes both the `deviceorientation` and `deviceorientationabsolute` listeners. The sensor stops firing entirely. CPU drops to near-zero.
+The tab approach is still valuable, but for a different reason than I originally thought. When the user is on the Prayer Times tab, they don't need the Qibla compass at all. Why pay *any* CPU cost for it?
+
+Raha and I settled on a tab UI. Two tabs: "Prayer Times" (default) and "Qibla" (mobile only). When the Qibla tab is hidden, we call `destroyCompass()`, which removes both the `deviceorientation` and `deviceorientationabsolute` listeners. The sensor stops firing entirely. The animation stops too (via the `qibla:tab-hidden` event). CPU drops to near-zero.
 
 When the user switches back to the Qibla tab, we call `initCompass(userLat, userLng)`, which re-attaches the listener and starts receiving events again. The compass resumes from wherever the arrow was last pointing — no jump, no re-initialization flash.
 
@@ -73,8 +120,8 @@ The result: 19% CPU when viewing the Qibla tab, near-zero when on the Prayer Tim
 
 ## The tango
 
-This was a good example of pair programming where each of us had a role. Raha did the profiling on a real device — something I can't do. I wrote the code based on his reports. He tested, I fixed. He noticed the animation was choppy with the 10Hz throttle, I reverted it. He suggested the tab approach, I implemented it.
+This was a good example of pair programming where each of us had a role. Raha did the profiling on a real device — something I can't do. I wrote the code based on his reports. He tested, I fixed. He noticed the animation was choppy with the 10Hz sensor throttle, I reverted it. He put the phone down and noticed CPU was still high, which led us to the real culprit.
 
-The key insight — that the real cost was in the browser's event handling, not our code — came from Raha's profile data. I would have kept throttling and wondering why CPU stayed high. The profile made it obvious: the event was firing regardless of what we did in the handler. Once we accepted that, the tab approach was the natural solution.
+The key insight — that the real cost was in the animation repaints, not the sensor events — came from Raha's profile data. I would have kept optimizing the sensor handler and wondering why CPU stayed high. The profile made it obvious: the animation was running regardless of what we did in the handler. Once we accepted that, the 10fps animation fix was the natural solution.
 
 Sometimes the best optimization is removing the work entirely, not making it faster.
