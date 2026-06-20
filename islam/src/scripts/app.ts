@@ -1,7 +1,7 @@
 import { initPrayerTimes } from "./prayer-times";
 import {
-  initQibla,
-  destroyQibla,
+  initCompass,
+  destroyCompass,
   requestCompassPermission,
 } from "./qibla";
 
@@ -63,10 +63,10 @@ function switchTab(tab: "prayer-times" | "qibla") {
   // Lifecycle: init / destroy Qibla to avoid sensor CPU when not visible
   if (tab === "qibla") {
     if (userLat !== null && userLng !== null) {
-      initQibla(userLat, userLng);
+      initCompass(userLat, userLng);
     }
   } else {
-    destroyQibla();
+    destroyCompass();
   }
 }
 
@@ -98,7 +98,7 @@ function handleLocationSuccess(position: GeolocationPosition) {
   // If the Qibla tab is already active (e.g., user switched before location
   // arrived), initialize Qibla now.
   if (activeTab === "qibla") {
-    initQibla(latitude, longitude);
+    initCompass(latitude, longitude);
   }
 
   // Check if iOS compass permission is needed
