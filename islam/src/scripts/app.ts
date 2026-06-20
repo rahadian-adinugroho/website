@@ -4,6 +4,8 @@ import {
   destroyCompass,
   requestCompassPermission,
 } from "./qibla";
+import { loadSettings } from "../lib/settings";
+import { initSettings, openSettings, closeSettings } from "./settings";
 
 const requestBtn = document.getElementById("request-location-btn");
 const retryBtn = document.getElementById("retry-location-btn");
@@ -92,8 +94,9 @@ function handleLocationSuccess(position: GeolocationPosition) {
   const nextPrayerCard = document.getElementById("next-prayer-card");
   if (nextPrayerCard) nextPrayerCard.hidden = false;
 
-  // Initialize prayer times (always, regardless of tab)
-  initPrayerTimes(latitude, longitude);
+  // Initialize prayer times with current settings (always, regardless of tab)
+  const settings = loadSettings();
+  initPrayerTimes(latitude, longitude, settings);
 
   // If the Qibla tab is already active (e.g., user switched before location
   // arrived), initialize Qibla now.
@@ -128,6 +131,19 @@ function renderGregorianDate(): void {
   }
 }
 renderGregorianDate();
+
+// Initialize settings panel
+initSettings();
+
+// Wire gear button
+document.getElementById("settings-gear-btn")?.addEventListener("click", openSettings);
+
+// Re-init prayer times when settings change
+window.addEventListener("settings:changed", ((e: CustomEvent) => {
+  if (userLat !== null && userLng !== null) {
+    initPrayerTimes(userLat, userLng, e.detail);
+  }
+}) as EventListener);
 
 // Wire tab buttons
 document.getElementById("tab-btn-prayer-times")?.addEventListener("click", () => {

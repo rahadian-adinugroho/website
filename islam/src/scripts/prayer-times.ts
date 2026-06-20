@@ -3,10 +3,23 @@ import {
   CalculationMethod,
   PrayerTimes,
   Madhab,
+  SunnahTimes,
 } from "adhan";
+import type { Settings, PrayerId } from "../lib/settings";
+import {
+  resolveMethod,
+  getAdhanCalculationMethod,
+} from "../lib/settings";
 
 let prayerTimesDisplay: PrayerTimes | null = null;
+let sunnahTimesDisplay: SunnahTimes | null = null;
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
+let currentSettings: Settings | null = null;
+let currentSunnahData: {
+  dhuha: Date;
+  middleOfNight: Date;
+  lastThirdOfNight: Date;
+} | null = null;
 
 const PRAYER_NAMES: Record<string, string> = {
   fajr: "Fajr",
@@ -17,27 +30,113 @@ const PRAYER_NAMES: Record<string, string> = {
   isha: "Isha",
 };
 
-export function initPrayerTimes(lat: number, lng: number): void {
+export function initPrayerTimes(
+  lat: number,
+  lng: number,
+  settings?: Settings,
+): void {
+  if (settings) currentSettings = settings;
+
   const coordinates = new Coordinates(lat, lng);
 
-  const params = CalculationMethod.Singapore();
-  params.adjustments = {
-    fajr: 2,
-    sunrise: -2,
-    dhuhr: 2,
-    asr: 2,
-    maghrib: 2,
-    isha: 2,
-  };
+  // Resolve calculation method from settings or locale with coordinate fallback
+  const resolved = currentSettings
+    ? resolveMethod(currentSettings, lat, lng)
+    : "singapore";
+  const params = getAdhanCalculationMethod(resolved);
+
+  // Apply ihtiyat (precautionary) adjustments — only for Singapore/Kemenag
+  if (resolved === "singapore") {
+    params.adjustments = {
+      fajr: 2,
+      sunrise: -2,
+      dhuhr: 2,
+      asr: 2,
+      maghrib: 2,
+      isha: 2,
+    };
+  } else {
+    params.adjustments = {
+      fajr: 0,
+      sunrise: 0,
+      dhuhr: 0,
+      asr: 0,
+      maghrib: 0,
+      isha: 0,
+    };
+  }
   params.madhab = Madhab.Shafi;
 
   const date = new Date();
   prayerTimesDisplay = new PrayerTimes(coordinates, date, params);
 
+  // Calculate sunnah times using adhan's SunnahTimes class.
+  // The library correctly handles the date wrap by using tomorrow's
+  // Fajr for the night duration calculation.
+  sunnahTimesDisplay = new SunnahTimes(prayerTimesDisplay);
+
+  // Dhuha = sunrise + 25 minutes (precautionary margin to ensure sunrise
+  // is fully past before praying Dhuha)
+  const dhuha = new Date(prayerTimesDisplay.sunrise.getTime() + 25 * 60 * 1000);
+
+  currentSunnahData = {
+    dhuha,
+    middleOfNight: sunnahTimesDisplay.middleOfTheNight,
+    lastThirdOfNight: sunnahTimesDisplay.lastThirdOfTheNight,
+  };
+
   renderPrayerTimes();
   renderHijriDate(date);
   startCountdown();
   showPrayerTimes();
+
+  // Dispatch event so the settings panel can refresh its time display
+  window.dispatchEvent(new CustomEvent("prayer:updated"));
+}
+
+export function getAllPrayerTimes(): {
+  id: PrayerId;
+  label: string;
+  time: Date;
+  isSunnah: boolean;
+}[] {
+  if (!prayerTimesDisplay) return [];
+
+  const times: { id: PrayerId; label: string; time: Date; isSunnah: boolean }[] = [
+    { id: "fajr", label: "Fajr", time: prayerTimesDisplay.fajr, isSunnah: false },
+    { id: "sunrise", label: "Sunrise", time: prayerTimesDisplay.sunrise, isSunnah: false },
+    { id: "dhuhr", label: "Dhuhr", time: prayerTimesDisplay.dhuhr, isSunnah: false },
+    { id: "asr", label: "Asr", time: prayerTimesDisplay.asr, isSunnah: false },
+    { id: "maghrib", label: "Maghrib", time: prayerTimesDisplay.maghrib, isSunnah: false },
+    { id: "isha", label: "Isha", time: prayerTimesDisplay.isha, isSunnah: false },
+  ];
+
+  if (currentSunnahData) {
+    // Insert Dhuha after Sunrise
+    times.splice(2, 0, {
+      id: "dhuha",
+      label: "Dhuha",
+      time: currentSunnahData.dhuha,
+      isSunnah: true,
+    });
+    // Append middle-of-night and last-third after Isha
+    times.push(
+      {
+        id: "middleOfNight",
+        label: "Middle of the Night",
+        time: currentSunnahData.middleOfNight,
+        isSunnah: true,
+      },
+      {
+        id: "lastThirdOfNight",
+        label: "Last Third of the Night",
+        time: currentSunnahData.lastThirdOfNight,
+        isSunnah: true,
+      },
+    );
+  }
+
+  return times;
 }
 
 function renderPrayerTimes(): void {
@@ -49,37 +148,47 @@ function renderPrayerTimes(): void {
     timeZoneName: undefined,
   });
 
-  const prayers: { id: string; label: string; time: Date }[] = [
-    { id: "fajr", label: "Fajr", time: prayerTimesDisplay.fajr },
-    { id: "sunrise", label: "Sunrise", time: prayerTimesDisplay.sunrise },
-    { id: "dhuhr", label: "Dhuhr", time: prayerTimesDisplay.dhuhr },
-    { id: "asr", label: "Asr", time: prayerTimesDisplay.asr },
-    { id: "maghrib", label: "Maghrib", time: prayerTimesDisplay.maghrib },
-    { id: "isha", label: "Isha", time: prayerTimesDisplay.isha },
-  ];
+  const allPrayers = getAllPrayerTimes();
+  const mandatoryPrayers = allPrayers.filter((p) => !p.isSunnah);
 
-  for (const prayer of prayers) {
+  for (const prayer of mandatoryPrayers) {
     const el = document.getElementById(`prayer-time-${prayer.id}`);
     if (el) {
       el.textContent = timeFormatter.format(prayer.time);
     }
   }
 
-  highlightPrayers(prayers);
+  // Show/hide and set times for sunnah prayer rows
+  if (currentSettings) {
+    const showDhuha = currentSettings.sunnahPrayers.dhuha;
+    const showMiddle = currentSettings.sunnahPrayers.middleOfNight;
+    const showLastThird = currentSettings.sunnahPrayers.lastThirdOfNight;
+
+    ["dhuha", "middleOfNight", "lastThirdOfNight"].forEach((id) => {
+      const row = document.getElementById(`prayer-row-${id}`);
+      if (row) {
+        row.classList.toggle("hidden", !currentSettings!.sunnahPrayers[id as keyof typeof currentSettings!.sunnahPrayers]);
+      }
+      const timeEl = document.getElementById(`prayer-time-${id}`);
+      if (timeEl && currentSunnahData) {
+        const time = currentSunnahData[id as keyof typeof currentSunnahData];
+        if (time) timeEl.textContent = timeFormatter.format(time);
+      }
+    });
+  }
+
+  highlightPrayers(mandatoryPrayers);
 }
 
 function getNextPrayer(): { id: string; label: string; time: Date } | null {
   if (!prayerTimesDisplay) return null;
 
   const now = new Date();
-  const prayers: { id: string; label: string; time: Date }[] = [
-    { id: "fajr", label: "Fajr", time: prayerTimesDisplay.fajr },
-    { id: "sunrise", label: "Sunrise", time: prayerTimesDisplay.sunrise },
-    { id: "dhuhr", label: "Dhuhr", time: prayerTimesDisplay.dhuhr },
-    { id: "asr", label: "Asr", time: prayerTimesDisplay.asr },
-    { id: "maghrib", label: "Maghrib", time: prayerTimesDisplay.maghrib },
-    { id: "isha", label: "Isha", time: prayerTimesDisplay.isha },
-  ];
+  const prayers = getAllPrayerTimes().map((p) => ({
+    id: p.id,
+    label: p.label,
+    time: p.time,
+  }));
 
   for (const prayer of prayers) {
     if (prayer.time > now) {
@@ -131,7 +240,7 @@ function updateCountdown(): void {
 }
 
 function highlightPrayers(
-  prayers: { id: string; label: string; time: Date }[]
+  prayers: { id: string; label: string; time: Date }[],
 ): void {
   const now = new Date();
 
@@ -164,7 +273,7 @@ function highlightPrayers(
       "border-primary-500",
       "font-bold",
       "text-primary-700",
-      "dark:text-primary-300"
+      "dark:text-primary-300",
     );
 
     if (i === currentIndex) {
@@ -175,14 +284,14 @@ function highlightPrayers(
         "border-primary-500",
         "font-bold",
         "text-primary-700",
-        "dark:text-primary-300"
+        "dark:text-primary-300",
       );
     } else if (i === nextIndex) {
       row.classList.add(
         "bg-primary-50",
         "dark:bg-primary-950",
         "border-l-2",
-        "border-primary-500"
+        "border-primary-500",
       );
     }
   }
@@ -193,7 +302,9 @@ function renderHijriDate(date: Date): void {
   if (!hijriEl) return;
 
   try {
-    hijriEl.textContent = new Intl.DateTimeFormat("en-US-u-ca-islamic", {
+    // Use islamic-tbla (tabular Islamic calendar, astronomical algorithm)
+    // to avoid the Firefox warning about unspecified calendar variant.
+    hijriEl.textContent = new Intl.DateTimeFormat("en-US-u-ca-islamic-tbla", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -207,7 +318,7 @@ function renderHijriDate(date: Date): void {
       Math.floor((1461 * (gy + 4800 + Math.floor((gm - 14) / 12))) / 4) +
       Math.floor((367 * (gm - 2 - 12 * Math.floor((gm - 14) / 12))) / 12) -
       Math.floor(
-        (3 * Math.floor((gy + 4900 + Math.floor((gm - 14) / 12)) / 100)) / 4
+        (3 * Math.floor((gy + 4900 + Math.floor((gm - 14) / 12)) / 100)) / 4,
       ) +
       gd -
       32075;
