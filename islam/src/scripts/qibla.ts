@@ -8,6 +8,7 @@ let lastRotation = 0;
 let lastDispatchedAccuracy: number | null = null;
 let arrowEl: HTMLElement | null = null;
 let pendingFrame = false;
+let iosPermissionGranted = false;
 
 export function getCurrentAccuracy(): number | null {
   return currentAccuracy;
@@ -23,13 +24,22 @@ export function initQibla(lat: number, lng: number): void {
     typeof DeviceOrientationEvent !== "undefined" &&
     typeof (DeviceOrientationEvent as any).requestPermission === "function";
 
+  // Reset cached arrow element in case it was invalidated by destroyQibla
+  arrowEl = null;
+
   showCompass();
   startCompass();
 }
 
 function startCompass(): void {
   if (isIOS) {
-    // iOS requires user gesture to request permission
+    // iOS requires a user gesture to request permission the first time.
+    // If permission was already granted in a previous init cycle, re-attach
+    // the listener directly without prompting again.
+    if (iosPermissionGranted) {
+      window.addEventListener("deviceorientation", handleOrientation);
+      console.log("[islam] compass listener re-attached (iOS, permission cached)");
+    }
     return;
   }
 
@@ -134,7 +144,8 @@ export async function requestCompassPermission(): Promise<void> {
       DeviceOrientationEvent as any
     ).requestPermission();
     console.log("[islam] compass permission:", permissionResult);
-    if (permissionResult === "granted") {
+    iosPermissionGranted = permissionResult === "granted";
+    if (iosPermissionGranted) {
       window.addEventListener("deviceorientation", handleOrientation);
       console.log("[islam] compass listener attached (iOS)");
     }

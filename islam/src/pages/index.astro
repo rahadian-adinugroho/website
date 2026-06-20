@@ -31,11 +31,30 @@ import QiblaCompass from "../components/QiblaCompass.astro";
     </button>
   </div>
 
-  <!-- Prayer times -->
-  <PrayerTimes />
+  <!-- Next prayer countdown (shared — visible above tabs) -->
+  <div id="next-prayer-card" hidden class="bg-primary-600 text-white rounded-xl shadow-sm p-4 mb-4 text-center">
+    <p class="text-sm opacity-90">Next prayer</p>
+    <p id="next-prayer-name" class="text-2xl font-bold mt-1">--</p>
+    <p id="next-prayer-countdown" class="text-3xl font-mono mt-2 tabular-nums">--:--:--</p>
+  </div>
 
-  <!-- Qibla compass (mobile only) -->
-  <QiblaCompass />
+  <!-- Tab bar -->
+  <div role="tablist" class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
+    <button id="tab-btn-prayer-times" role="tab" aria-selected="true" class="flex-1 py-3 px-4 text-sm font-medium text-primary-700 dark:text-primary-400 border-b-2 border-primary-600 transition-colors">
+      Prayer Times
+    </button>
+    <button id="tab-btn-qibla" role="tab" aria-selected="false" class="flex-1 py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300 transition-colors md:hidden">
+      Qibla
+    </button>
+  </div>
+
+  <!-- Tab panels -->
+  <div id="tab-panel-prayer-times" role="tabpanel">
+    <PrayerTimes />
+  </div>
+  <div id="tab-panel-qibla" role="tabpanel" hidden>
+    <QiblaCompass />
+  </div>
 
   <!-- App scripts -->
   <script>
