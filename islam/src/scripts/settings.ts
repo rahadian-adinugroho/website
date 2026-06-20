@@ -111,6 +111,11 @@ function wireEvents(): void {
     });
   }
 
+  // Refresh "Using: X" label when locale changes
+  window.addEventListener("locale:changed", () => {
+    updateDetectedMethod();
+  });
+
   // Checkbox changes (sunnah prayers)
   document.querySelectorAll<HTMLInputElement>('input[name^="settings-sunnah-"]').forEach((input) => {
     input.addEventListener("change", () => {
