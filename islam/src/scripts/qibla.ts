@@ -5,7 +5,6 @@ let currentHeading = 0;
 let currentAccuracy: number | null = null;
 let isIOS = false;
 let lastRotation = 0;
-let wasAligned = false;
 
 export function getCurrentAccuracy(): number | null {
   return currentAccuracy;
@@ -87,22 +86,6 @@ function updateArrow(): void {
   // CSS values) when sensor noise puts the raw value near the boundary.
   let delta = ((target - lastRotation) % 360 + 540) % 360 - 180;
   const newRotation = lastRotation + delta;
-
-  // Alignment check runs BEFORE the deadband return so it fires even
-  // when delta is tiny (i.e. the phone is precisely aligned).
-  // target = qiblaBearing - currentHeading — near 0° means pointing at Qibla.
-  const isAligned = Math.abs(target) < 5 || Math.abs(target) > 355;
-  if (isAligned && !wasAligned) {
-    if (typeof navigator.vibrate === "function") {
-      console.log("[islam] vibrating! target:", target, "delta:", delta);
-      navigator.vibrate(100);
-    } else {
-      console.log(
-        "[islam] Vibration API not supported on this browser (expected on iOS Safari)",
-      );
-    }
-  }
-  wasAligned = isAligned;
 
   // Deadband: ignore tiny changes (< 0.5°) to prevent jitter from sensor noise
   if (Math.abs(delta) < 0.5) return;
