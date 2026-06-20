@@ -1,4 +1,7 @@
+import { t, getLocale, setLocale, detectLocale } from "../i18n/i18n";
+import type { Locale } from "../i18n/i18n";
 import type { Settings, CalcMethod, SunnahPrayer } from "../lib/settings";
+import { getUserLocation } from "../lib/location";
 import {
   DEFAULT_SETTINGS,
   loadSettings,
@@ -60,9 +63,13 @@ export function closeSettings(): void {
 
 export function initSettings(): void {
   currentSettings = loadSettings();
+  applySettingsToForm(currentSettings);
 
   // Wire up event listeners (only once)
   wireEvents();
+
+  // Update detected method label on page load
+  updateDetectedMethod();
 }
 
 // --- Internal ---
@@ -79,16 +86,41 @@ function wireEvents(): void {
     if (e.key === "Escape" && isOpen) closeSettings();
   });
 
-  // Radio button changes (calculation method)
-  document.querySelectorAll<HTMLInputElement>('input[name="settings-calc-method"]').forEach((input) => {
-    input.addEventListener("change", () => {
-      if (!input.checked) return;
-      const method = input.value as CalcMethod;
+  // Calculation method select
+  const calcSelect = document.querySelector<HTMLSelectElement>('select[name="settings-calc-method"]');
+  if (calcSelect) {
+    calcSelect.addEventListener("change", () => {
+      const method = calcSelect.value as CalcMethod;
       currentSettings = { ...currentSettings, calcMethod: method };
       saveSettings(currentSettings);
       updateDetectedMethod();
       dispatchChanged();
     });
+  }
+
+  // Language select
+  const langSelect = document.querySelector<HTMLSelectElement>('select[name="settings-lang"]');
+  if (langSelect) {
+    langSelect.addEventListener("change", () => {
+      const value = langSelect.value;
+      if (value === "auto") {
+        localStorage.removeItem("islam:lang");
+        const detected = detectLocale();
+        setLocale(detected);
+      } else {
+        setLocale(value as Locale);
+      }
+    });
+  }
+
+  // Refresh "Using: X" label when locale changes
+  window.addEventListener("locale:changed", () => {
+    updateDetectedMethod();
+  });
+
+  // Refresh "Using: X" label when user location changes
+  window.addEventListener("location:updated", () => {
+    updateDetectedMethod();
   });
 
   // Checkbox changes (sunnah prayers)
@@ -109,12 +141,10 @@ function wireEvents(): void {
 
 }
 
-function applySettingsToForm(settings: Settings): void {
-  // Set calculation method radio
-  const radio = document.querySelector<HTMLInputElement>(
-    `input[name="settings-calc-method"][value="${settings.calcMethod}"]`,
-  );
-  if (radio) radio.checked = true;
+export function applySettingsToForm(settings: Settings): void {
+  // Set calculation method select
+  const calcSelect = document.querySelector<HTMLSelectElement>('select[name="settings-calc-method"]');
+  if (calcSelect) calcSelect.value = settings.calcMethod;
 
   // Set sunnah prayer checkboxes
   (Object.keys(settings.sunnahPrayers) as SunnahPrayer[]).forEach((key) => {
@@ -123,13 +153,31 @@ function applySettingsToForm(settings: Settings): void {
     );
     if (cb) cb.checked = settings.sunnahPrayers[key];
   });
+
+  // Set language select
+  const langSelect = document.querySelector<HTMLSelectElement>('select[name="settings-lang"]');
+  if (langSelect) {
+    const stored = localStorage.getItem("islam:lang");
+    langSelect.value = (stored === "en" || stored === "id") ? stored : "auto";
+  }
 }
 
 function updateDetectedMethod(): void {
   const el = $("settings-detected-method");
   if (!el) return;
-  const resolved = resolveMethod(currentSettings);
-  el.textContent = `Using: ${getAdhanMethodName(resolved)}`;
+
+  if (currentSettings.calcMethod === "automatic") {
+    const loc = getUserLocation();
+    const resolved = resolveMethod(
+      currentSettings,
+      loc?.lat,
+      loc?.lng,
+    );
+    el.textContent = t("settings.calcMethod.using", { method: getAdhanMethodName(resolved) });
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
 }
 
 function dispatchChanged(): void {

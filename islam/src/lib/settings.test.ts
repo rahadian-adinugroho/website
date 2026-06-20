@@ -9,6 +9,7 @@ import {
   saveSettings,
   DEFAULT_SETTINGS,
 } from "./settings";
+import { applySettingsToForm } from "../scripts/settings";
 import type { Settings, CalcMethod } from "./settings";
 
 // ========================================================================
@@ -611,5 +612,49 @@ describe("loadSettings / saveSettings", () => {
       JSON.stringify({ version: 99, calcMethod: "ummAlQura" }),
     );
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
+  });
+});
+
+// ========================================================================
+// applySettingsToForm — language select
+// ========================================================================
+
+describe("applySettingsToForm — language select", () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <select name="settings-lang">
+        <option value="auto">Automatic</option>
+        <option value="id">Bahasa Indonesia</option>
+        <option value="en">English</option>
+      </select>
+      <select name="settings-calc-method">
+        <option value="automatic">Automatic</option>
+        <option value="singapore">Singapore</option>
+      </select>
+      <input type="checkbox" name="settings-sunnah-dhuha" />
+      <input type="checkbox" name="settings-sunnah-middleOfNight" />
+      <input type="checkbox" name="settings-sunnah-lastThirdOfNight" />
+    `;
+    localStorage.clear();
+  });
+
+  it("defaults to 'auto' when localStorage is empty", () => {
+    applySettingsToForm(loadSettings());
+    const select = document.querySelector<HTMLSelectElement>('select[name="settings-lang"]');
+    expect(select?.value).toBe("auto");
+  });
+
+  it("shows 'id' when localStorage has 'islam:lang' = 'id'", () => {
+    localStorage.setItem("islam:lang", "id");
+    applySettingsToForm(loadSettings());
+    const select = document.querySelector<HTMLSelectElement>('select[name="settings-lang"]');
+    expect(select?.value).toBe("id");
+  });
+
+  it("shows 'en' when localStorage has 'islam:lang' = 'en'", () => {
+    localStorage.setItem("islam:lang", "en");
+    applySettingsToForm(loadSettings());
+    const select = document.querySelector<HTMLSelectElement>('select[name="settings-lang"]');
+    expect(select?.value).toBe("en");
   });
 });

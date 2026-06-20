@@ -1,3 +1,4 @@
+import { initI18n, t } from "../i18n/i18n";
 import { initPrayerTimes } from "./prayer-times";
 import {
   initCompass,
@@ -5,6 +6,7 @@ import {
   requestCompassPermission,
 } from "./qibla";
 import { loadSettings } from "../lib/settings";
+import { setUserLocation } from "../lib/location";
 import { initSettings, openSettings, closeSettings } from "./settings";
 
 const requestBtn = document.getElementById("request-location-btn");
@@ -18,6 +20,9 @@ const isIOS =
   typeof (DeviceOrientationEvent as any).requestPermission === "function";
 
 console.log("[islam] init, isIOS:", isIOS);
+
+// Initialize i18n first
+initI18n();
 
 // Tab state
 let activeTab: "prayer-times" | "qibla" = "prayer-times";
@@ -85,6 +90,11 @@ function handleLocationSuccess(position: GeolocationPosition) {
   // Store for later use by Qibla tab
   userLat = latitude;
   userLng = longitude;
+
+  // Make location available to other modules (e.g., settings panel)
+  setUserLocation(latitude, longitude);
+  // Refresh the "Using: X" label in the settings panel (if open)
+  window.dispatchEvent(new CustomEvent("location:updated"));
 
   // Hide all request/error UI
   if (locationRequest) locationRequest.hidden = true;
@@ -197,13 +207,7 @@ function handleLocationError(error: GeolocationPositionError) {
   if (error.code === error.PERMISSION_DENIED) {
     if (isIOS) {
       if (errorMsg) {
-        errorMsg.innerHTML =
-          "<strong>Location access denied.</strong><br><br>" +
-          "To fix this on iOS:<br>" +
-          "1. Settings → Privacy &amp; Security → Location Services → Enable Location Services<br>" +
-          "2. Scroll down to Safari → select \"While Using App\"<br>" +
-          "3. Reload this page<br><br>" +
-          "Or: Settings → Safari → Clear History and Website Data, then reload.";
+        errorMsg.innerHTML = "<strong>" + t("location.errorDeniedIos") + "</strong>";
       }
       if (locationRequest) locationRequest.hidden = true;
       if (locationError) locationError.hidden = false;
@@ -213,15 +217,14 @@ function handleLocationError(error: GeolocationPositionError) {
     }
   } else if (error.code === error.POSITION_UNAVAILABLE) {
     if (errorMsg) {
-      errorMsg.textContent =
-        "Location unavailable. Please check your internet connection and GPS settings.";
+      errorMsg.textContent = t("location.errorUnavailable");
     }
     if (locationRequest) locationRequest.hidden = true;
     if (locationError) locationError.hidden = false;
   } else {
     // Timeout
     if (errorMsg) {
-      errorMsg.textContent = "Request timed out. Please try again.";
+      errorMsg.textContent = t("location.errorTimeout");
     }
     if (locationRequest) locationRequest.hidden = true;
     if (locationError) locationError.hidden = false;

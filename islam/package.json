@@ -21,6 +21,7 @@
   "devDependencies": {
     "@vitest/coverage-istanbul": "^4.1.9",
     "@vitest/coverage-v8": "^4.1.9",
+    "happy-dom": "^20.10.6",
     "vitest": "^4.1.9"
   }
 }
