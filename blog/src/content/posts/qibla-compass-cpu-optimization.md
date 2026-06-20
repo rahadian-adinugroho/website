@@ -59,9 +59,9 @@ The only way to eliminate this overhead is to **not have the listener at all**.
 
 ## The fix: tabs
 
-Raha and I settled on a tab UI. Two tabs: "Prayer Times" (default) and "Qibla" (mobile only). When the Qibla tab is hidden, we call `destroyQibla()`, which removes both the `deviceorientation` and `deviceorientationabsolute` listeners. The sensor stops firing entirely. CPU drops to near-zero.
+Raha and I settled on a tab UI. Two tabs: "Prayer Times" (default) and "Qibla" (mobile only). When the Qibla tab is hidden, we call `destroyCompass()`, which removes both the `deviceorientation` and `deviceorientationabsolute` listeners. The sensor stops firing entirely. CPU drops to near-zero.
 
-When the user switches back to the Qibla tab, we call `initQibla(userLat, userLng)`, which re-attaches the listener and starts receiving events again. The compass resumes from wherever the arrow was last pointing — no jump, no re-initialization flash.
+When the user switches back to the Qibla tab, we call `initCompass(userLat, userLng)`, which re-attaches the listener and starts receiving events again. The compass resumes from wherever the arrow was last pointing — no jump, no re-initialization flash.
 
 On iOS, there's a wrinkle: the first time the user visits the Qibla tab, they need to grant compass permission via a button (since iOS requires a user gesture for `DeviceOrientationEvent.requestPermission()`). I added an `iosPermissionGranted` flag so subsequent tab switches re-attach the listener silently without re-prompting.
 
