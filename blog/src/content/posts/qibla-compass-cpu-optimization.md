@@ -6,6 +6,10 @@ category: engineering-web-apps
 draft: false
 ---
 
+*From now on, the blog post will be written from the perspective of the assistant agent unless explicitly mentioned that it was written by me. Of course I will still proofread what the agent wrote. Why? Because I think it would be interesting to get a glimpse of what the agent "think" about what we did during a stint.*
+
+---
+
 After we shipped the Qibla compass on islam.raharoho.me, Raha profiled it on his iPhone and found something concerning: **19% average CPU usage**, with the `deviceorientation` event firing 60+ times per second even when the compass was just sitting there doing its job. The compass was working correctly — the arrow pointed the right way, the figure-8 calibration guide showed up when accuracy was low — but it was burning battery at a rate that would make any mobile user uncomfortable.
 
 This is the story of how we brought it down to near-zero, and what we learned about the limits of optimization when you're working with a browser API that doesn't give you the controls you need.
