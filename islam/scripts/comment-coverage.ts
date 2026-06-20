@@ -139,6 +139,33 @@ async function updateComment(
 
 // === Comment formatting ===
 
+/**
+ * Format a sorted list of line numbers as ranges.
+ * Single lines stay as "n". Consecutive lines become "n-m".
+ * Example: [38, 49, 50, 59] → "38, 49-50, 59"
+ */
+function formatLineRanges(lines: number[]): string {
+  if (lines.length === 0) return "—";
+
+  const sorted = [...lines].sort((a, b) => a - b);
+  const ranges: string[] = [];
+  let start = sorted[0];
+  let end = sorted[0];
+
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === end + 1) {
+      end = sorted[i];
+    } else {
+      ranges.push(start === end ? `${start}` : `${start}-${end}`);
+      start = sorted[i];
+      end = sorted[i];
+    }
+  }
+  ranges.push(start === end ? `${start}` : `${start}-${end}`);
+
+  return ranges.join(", ");
+}
+
 function formatCoverageComment(
   files: Array<{ path: string; coverage: FileCoverage }>,
   totalLines: number,
@@ -161,12 +188,7 @@ No coverage data for changed files (changed files don't include any tracked sour
         coverage.linesFound === 0
           ? 100
           : (coverage.linesHit / coverage.linesFound) * 100;
-      const uncovered =
-        coverage.uncoveredLines.length === 0
-          ? "—"
-          : coverage.uncoveredLines
-              .map((n) => n.toString())
-              .join(", ");
+      const uncovered = formatLineRanges(coverage.uncoveredLines);
       return `| \`${path}\` | ${pct.toFixed(1)}% | ${coverage.linesHit}/${coverage.linesFound} | ${uncovered} |`;
     })
     .join("\n");
