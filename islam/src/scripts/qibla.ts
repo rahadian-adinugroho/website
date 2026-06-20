@@ -8,6 +8,7 @@ let lastRotation = 0;
 let lastUpdateTime = 0;
 let lastDispatchedAccuracy: number | null = null;
 let arrowEl: HTMLElement | null = null;
+let pendingFrame = false;
 
 export function getCurrentAccuracy(): number | null {
   return currentAccuracy;
@@ -47,6 +48,20 @@ function startCompass(): void {
 }
 
 function handleOrientation(event: DeviceOrientationEvent): void {
+  // Throttle to max 10Hz (100ms) — the sensor fires at 20-60Hz but
+  // our compass arrow only needs ~10 updates/sec for smooth rotation.
+  const now = Date.now();
+  if (now - lastUpdateTime < 100) return;
+  lastUpdateTime = now;
+
+  // Skip updates when page is in a background tab or compass is hidden
+  if (document.hidden) return;
+  if (!arrowEl) {
+    arrowEl = document.getElementById("qibla-arrow");
+    if (!arrowEl) return; // compass not yet shown
+  }
+  if (arrowEl.offsetParent === null) return; // compass has been hidden
+
   let heading: number | null = null;
 
   // iOS: webkitCompassHeading is the true compass heading (0 = north, clockwise)
@@ -87,18 +102,6 @@ function handleOrientation(event: DeviceOrientationEvent): void {
 }
 
 function updateArrow(): void {
-  // Throttle to max 20Hz (50ms) — sensor fires at 20-60Hz on most devices.
-  // This is the single biggest performance win (cuts 60-70% of DOM work).
-  const now = Date.now();
-  if (now - lastUpdateTime < 50) return;
-  lastUpdateTime = now;
-
-  // Cache the arrow element after the first lookup to avoid DOM queries at 20Hz.
-  if (!arrowEl) {
-    arrowEl = document.getElementById("qibla-arrow");
-    if (!arrowEl) return;
-  }
-
   // Arrow points to Qibla relative to device heading
   // qiblaBearing: direction to Mecca from north (clockwise)
   // currentHeading: direction device top is pointing from north (clockwise)
@@ -116,7 +119,17 @@ function updateArrow(): void {
   if (Math.abs(delta) < 0.5) return;
   lastRotation = newRotation;
 
-  arrowEl.style.transform = `rotate(${newRotation}deg)`;
+  // Defer the DOM write to the next animation frame so we batch with other
+  // visual updates and avoid forcing style recalc in the sensor event handler.
+  if (!pendingFrame) {
+    pendingFrame = true;
+    requestAnimationFrame(() => {
+      pendingFrame = false;
+      if (arrowEl) {
+        arrowEl.style.transform = `rotate(${lastRotation}deg)`;
+      }
+    });
+  }
 }
 
 export async function requestCompassPermission(): Promise<void> {
