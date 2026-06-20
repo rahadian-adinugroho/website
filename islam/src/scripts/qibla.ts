@@ -5,7 +5,6 @@ let currentHeading = 0;
 let currentAccuracy: number | null = null;
 let isIOS = false;
 let lastRotation = 0;
-let lastUpdateTime = 0;
 let lastDispatchedAccuracy: number | null = null;
 let arrowEl: HTMLElement | null = null;
 let pendingFrame = false;
@@ -48,12 +47,6 @@ function startCompass(): void {
 }
 
 function handleOrientation(event: DeviceOrientationEvent): void {
-  // Throttle to max 10Hz (100ms) — the sensor fires at 20-60Hz but
-  // our compass arrow only needs ~10 updates/sec for smooth rotation.
-  const now = Date.now();
-  if (now - lastUpdateTime < 100) return;
-  lastUpdateTime = now;
-
   // Skip updates when page is in a background tab or compass is hidden
   if (document.hidden) return;
   if (!arrowEl) {
