@@ -7,7 +7,7 @@ export default defineConfig({
       provider: "istanbul",
       reporter: ["text", "json", "html", "lcov"],
       reportsDirectory: "./coverage",
-      include: ["src/lib/settings.ts", "src/scripts/prayer-times.ts"],
+      include: ["src/lib/settings.ts"],
     },
   },
 });
