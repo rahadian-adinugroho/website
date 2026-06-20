@@ -197,19 +197,20 @@ describe("detectMethodFromCoordinates", () => {
 
   // These cities are inside the Arabia box but aren't on the peninsula.
   // The bounding box is too generous — noted as a refinement opportunity.
-  it("returns ummAlQura for Baghdad (Iraq) — known bounding box overlap", () => {
-    expect(detectMethodFromCoordinates(33.3152, 44.3661)).toBe("ummAlQura");
+  it("returns muslimWorldLeague for Baghdad (Iraq)", () => {
+    // Fixed by moving Middle East check before Arabian Peninsula.
+    expect(detectMethodFromCoordinates(33.3152, 44.3661)).toBe("muslimWorldLeague");
   });
 
-  it("returns ummAlQura for Damascus (Syria) — known bounding box overlap", () => {
-    expect(detectMethodFromCoordinates(33.5138, 36.2765)).toBe("ummAlQura");
+  it("returns muslimWorldLeague for Damascus (Syria)", () => {
+    // Fixed by moving Middle East check before Arabian Peninsula.
+    expect(detectMethodFromCoordinates(33.5138, 36.2765)).toBe("muslimWorldLeague");
   });
 
-  it("returns egyptian for Amman (Jordan) — Egypt box overlaps Jordan", () => {
-    // Bug: Egypt's bounding box (lat 22-32, lng 25-36) overlaps Jordan.
-    // Amman at (31.95, 35.91) is within both Egypt and Arabia boxes; Egypt
-    // comes first so it wins. Egypt's east bound should be tightened.
-    expect(detectMethodFromCoordinates(31.9539, 35.9106)).toBe("egyptian");
+  it("returns muslimWorldLeague for Amman (Jordan)", () => {
+    // Fixed by tightening Egypt's lng from 25-36 to 25-34,
+    // and moving Middle East before Arabian Peninsula.
+    expect(detectMethodFromCoordinates(31.9539, 35.9106)).toBe("muslimWorldLeague");
   });
 
   // === North America ===
@@ -230,20 +231,10 @@ describe("detectMethodFromCoordinates", () => {
   // Middle East (non-Arabian-peninsula): Iraq, Syria, Jordan, Lebanon, Palestine
   // Note: these won't match Middle East box because Arabia box catches them first
   // Use coordinates outside Arabia box to test the Middle East MWL region
-  it("returns muslimWorldLeague for Beirut (Lebanon)", () => {
-    // Beirut: 33.9, 35.5 — inside Arabia box (lat 12-37, lng 34-60)
-    // This returns ummAlQura due to box overlap. Test a coord just outside instead.
-    // Lat 38, 36 — not in Arabia (lat > 37), not in Turkey (lng 36 is in Turkey range
-    // but lat 38 is also in Turkey range 36-42, and Turkey comes first)
-    // Hmm, Turkey: lat 36-42, lng 26-45. So (38, 36) → Turkey.
-    // Let's test something that actually hits the Middle East region.
-    // Middle East: lat 29-38, lng 34-44
-    // Test (34, 44) — on the edge
-    // Actually, (34, 44) would match... Iran requires lng 45-63, so 44 < 45.
-    // Arabia requires lng 34-60, lat 12-37 — 34 is in range, so Arabia catches it.
-    // The Arabia box absorbs most of the Middle East. This is a known issue.
-    // For now test a city that truly falls into the MWL fallback.
-    expect(detectMethodFromCoordinates(34, 44)).toBe("ummAlQura");
+  it("returns muslimWorldLeague for Middle East region", () => {
+    // (34, 44) is in Iraq — now correctly caught by the Middle East box
+    // (lat 29-38, lng 34-45) since it's checked before Arabian Peninsula.
+    expect(detectMethodFromCoordinates(34, 44)).toBe("muslimWorldLeague");
   });
 
   // North Africa

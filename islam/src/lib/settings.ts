@@ -78,8 +78,8 @@ export function detectMethodFromCoordinates(
 ): Exclude<CalcMethod, "automatic"> {
   // === Specific methods (higher priority for overlapping regions) ===
 
-  // Egypt
-  if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 36) return "egyptian";
+  // Egypt — tightened to lng 25-34 to exclude Jordan (lng 35+ like Amman)
+  if (lat >= 22 && lat <= 32 && lng >= 25 && lng <= 34) return "egyptian";
 
   // Turkey (Diyanet)
   if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) return "turkey";
@@ -96,14 +96,19 @@ export function detectMethodFromCoordinates(
   // Malaysia / Singapore / Brunei (Singapore method)
   if (lat >= 1 && lat <= 7 && lng >= 100 && lng <= 119) return "singapore";
 
-  // Arabian Peninsula (Umm al-Qura)
-  if (lat >= 12 && lat <= 37 && lng >= 34 && lng <= 60) return "ummAlQura";
-
   // === Muslim World League fallback regions ===
 
-  // Middle East: Iraq, Syria, Jordan, Lebanon, Palestine
-  if (lat >= 29 && lat <= 38 && lng >= 34 && lng <= 44)
+  // Middle East (non-Arabian-peninsula): Iraq, Syria, Jordan, Lebanon,
+  // Palestine. Checked before Arabian Peninsula so Baghdad (lng 44.4),
+  // Damascus (lng 36.3), and Amman (lng 35.9) get MWL instead of Umm al-Qura.
+  // Lng bound 45 covers Baghdad (44.4) while excluding Riyadh (46.7+).
+  if (lat >= 29 && lat <= 38 && lng >= 34 && lng <= 45)
     return "muslimWorldLeague";
+
+  // Arabian Peninsula (Umm al-Qura) — Saudi Arabia, Yemen, Oman, UAE,
+  // Kuwait, Qatar, Bahrain. Lat 12-30 catches Kuwait (29.4) while
+  // minimally overlapping Middle East box at the Iraq/Saudi border.
+  if (lat >= 12 && lat <= 30 && lng >= 34 && lng <= 60) return "ummAlQura";
 
   // North America (ISNA)
   if (lat >= 25 && lat <= 70 && lng >= -170 && lng <= -50)
