@@ -23,9 +23,108 @@
     </div>
     <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">Qibla</p>
 
+    <!-- Accuracy fine-print button (always visible, shows guide on tap) -->
+    <button id="accuracy-fine-print" class="mt-1 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors underline underline-offset-2 cursor-pointer">
+      About accuracy
+    </button>
+
+    <!-- Prominent figure-8 calibration guide (iOS, shown when accuracy > 20°) -->
+    <div id="accuracy-guide-prominent" hidden class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg w-full max-w-xs">
+      <div class="flex flex-col items-center gap-2">
+        <svg viewBox="0 0 200 100" class="w-48 h-24 overflow-visible">
+          <!-- Dashed guide path (figure-8 / lemniscate) -->
+          <path d="M 100 50 C 140 5, 185 50, 100 50 C 60 95, 15 50, 100 50"
+                fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"
+                class="text-gray-400 dark:text-gray-500" />
+          <!-- Phone icon tracing the path -->
+          <rect x="-12" y="-8" width="24" height="16" rx="3" fill="#16a34a" opacity="0.9">
+            <animateMotion dur="3s" repeatCount="indefinite" rotate="0"
+              path="M 100 50 C 140 5, 185 50, 100 50 C 60 95, 15 50, 100 50" />
+          </rect>
+        </svg>
+        <p class="text-xs text-gray-600 dark:text-gray-400 text-center">
+          Move your phone in a figure-8 pattern to calibrate the compass. This helps the device map the local magnetic field.
+        </p>
+      </div>
+    </div>
+
+    <!-- Modal for Android (shown on fine-print click) -->
+    <div id="accuracy-guide-modal" hidden class="fixed inset-0 z-50 flex items-center justify-center">
+      <!-- Backdrop -->
+      <div id="accuracy-guide-backdrop" class="absolute inset-0 bg-black/50 dark:bg-black/60"></div>
+      <!-- Modal content -->
+      <div class="relative z-10 bg-white dark:bg-gray-800 rounded-xl p-6 mx-4 max-w-sm w-full shadow-xl">
+        <div class="flex items-start justify-between mb-4">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Compass Calibration</h3>
+          <button id="accuracy-guide-close" type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" aria-label="Close calibration guide">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="flex flex-col items-center gap-3">
+          <svg viewBox="0 0 200 100" class="w-48 h-24 overflow-visible">
+            <!-- Dashed guide path -->
+            <path d="M 100 50 C 140 5, 185 50, 100 50 C 60 95, 15 50, 100 50"
+                  fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 4"
+                  class="text-gray-400 dark:text-gray-500" />
+            <!-- Phone icon tracing the path -->
+            <rect x="-12" y="-8" width="24" height="16" rx="3" fill="#16a34a" opacity="0.9">
+              <animateMotion dur="3s" repeatCount="indefinite" rotate="0"
+                path="M 100 50 C 140 5, 185 50, 100 50 C 60 95, 15 50, 100 50" />
+            </rect>
+          </svg>
+          <p class="text-xs text-gray-600 dark:text-gray-400 text-center">
+            Move your phone in a figure-8 pattern to calibrate the compass. This helps the device map the local magnetic field.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- iOS permission button (hidden on non-iOS) -->
     <button id="compass-permission-btn" hidden class="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm transition-colors">
       Enable Compass
     </button>
   </div>
 </div>
+
+<script>
+  const guideProminent = document.getElementById("accuracy-guide-prominent");
+  const finePrint = document.getElementById("accuracy-fine-print");
+  const modal = document.getElementById("accuracy-guide-modal");
+  const modalClose = document.getElementById("accuracy-guide-close");
+  const modalBackdrop = document.getElementById("accuracy-guide-backdrop");
+
+  const isIOS =
+    typeof DeviceOrientationEvent !== "undefined" &&
+    typeof (DeviceOrientationEvent as any).requestPermission === "function";
+
+  // --- iOS: live accuracy updates toggle prominent guide ---
+  if (isIOS && guideProminent) {
+    window.addEventListener("qibla:accuracy", ((e: CustomEvent) => {
+      guideProminent.hidden = e.detail.accuracy <= 20;
+    }) as EventListener);
+  }
+
+  // --- Modal open/close (shared for both platforms) ---
+  if (finePrint && modal && modalClose && modalBackdrop) {
+    function openModal() {
+      modal.hidden = false;
+      document.body.style.overflow = "hidden";
+      // Focus the close button for accessibility
+      requestAnimationFrame(() => modalClose!.focus());
+    }
+
+    function closeModal() {
+      modal.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    finePrint.addEventListener("click", openModal);
+    modalClose.addEventListener("click", closeModal);
+    modalBackdrop.addEventListener("click", closeModal);
+    modal.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeModal();
+    });
+  }
+</script>

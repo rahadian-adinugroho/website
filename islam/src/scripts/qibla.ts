@@ -2,8 +2,13 @@ import { Coordinates, Qibla } from "adhan";
 
 let qiblaBearing = 0;
 let currentHeading = 0;
+let currentAccuracy: number | null = null;
 let isIOS = false;
 let lastRotation = 0;
+
+export function getCurrentAccuracy(): number | null {
+  return currentAccuracy;
+}
 
 export function initQibla(lat: number, lng: number): void {
   const coordinates = new Coordinates(lat, lng);
@@ -40,6 +45,14 @@ function handleOrientation(event: DeviceOrientationEvent): void {
   const webkitHeading = (event as any).webkitCompassHeading;
   if (typeof webkitHeading === "number" && !isNaN(webkitHeading)) {
     heading = webkitHeading;
+    // iOS also exposes webkitCompassAccuracy (degrees, lower = better)
+    const accuracy = (event as any).webkitCompassAccuracy;
+    if (typeof accuracy === "number" && !isNaN(accuracy)) {
+      currentAccuracy = accuracy;
+      window.dispatchEvent(
+        new CustomEvent("qibla:accuracy", { detail: { accuracy } }),
+      );
+    }
   } else if (event.alpha !== null) {
     // Android/other: alpha is counterclockwise, convert to compass heading
     // Only use if event.absolute is true (means it's relative to Earth, not arbitrary)
