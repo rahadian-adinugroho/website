@@ -8,7 +8,8 @@ export type CalcMethod =
   | "egyptian"
   | "karachi"
   | "northAmerica"
-  | "tehran";
+  | "tehran"
+  | "turkey";
 
 export type SunnahPrayer = "dhuha" | "middleOfNight" | "lastThirdOfNight";
 
@@ -60,7 +61,7 @@ export function detectMethodFromLocale(
   if (/^ar/i.test(locale)) return "ummAlQura";
   if (/^ur/i.test(locale) || /^bn/i.test(locale)) return "karachi";
   if (/^fa/i.test(locale)) return "tehran";
-  if (/^tr/i.test(locale)) return "muslimWorldLeague";
+  if (/^tr/i.test(locale)) return "turkey";
   if (/^en/i.test(locale)) return "muslimWorldLeague";
   return "muslimWorldLeague";
 }
@@ -80,14 +81,18 @@ export function detectMethodFromCoordinates(
   if (lat >= 24 && lat <= 37 && lng >= 61 && lng <= 78) return "karachi";
   // Iran: lat 25 to 40, lng 44 to 63
   if (lat >= 25 && lat <= 40 && lng >= 44 && lng <= 63) return "tehran";
+  // Turkey: lat 36 to 42, lng 26 to 45
+  if (lat >= 36 && lat <= 42 && lng >= 26 && lng <= 45) return "turkey";
   // North America (rough): lat 25 to 70, lng -170 to -50
   if (lat >= 25 && lat <= 70 && lng >= -170 && lng <= -50)
     return "northAmerica";
   return "muslimWorldLeague";
 }
 
-/** Resolve "automatic" to a concrete method. Cross-checks locale and
- * coordinates — coordinates are more authoritative when both are available. */
+/** Resolve "automatic" to a concrete method. Coordinates are
+ * authoritative — a traveler should follow the prayer times of where
+ * they physically are, not where their browser says they are. Locale
+ * is only used as a fallback when coordinates are unavailable. */
 export function resolveMethod(
   settings: Settings,
   lat?: number,
@@ -96,37 +101,31 @@ export function resolveMethod(
   if (settings.calcMethod !== "automatic") {
     return settings.calcMethod;
   }
-  const localeMethod = detectMethodFromLocale(navigator.language);
-  console.log(
-    "[islam] locale:",
-    navigator.language,
-    "→ locale method:",
-    getAdhanMethodName(localeMethod),
-  );
 
-  // If we have coordinates, cross-check. Coordinates are more authoritative
-  // than browser language (e.g., an English-speaking user in Indonesia
-  // should get Singapore method, not MWL).
+  // Coordinates are the most authoritative signal — use them when available.
+  // This ensures travelers get local prayer times regardless of browser
+  // language (e.g., an Indonesian user traveling in Turkey should get
+  // the Diyanet method, not Singapore/Kemenag).
   if (lat !== undefined && lng !== undefined) {
     const coordMethod = detectMethodFromCoordinates(lat, lng);
     console.log(
       "[islam] coords:",
       lat,
       lng,
-      "→ coord method:",
+      "→ method:",
       getAdhanMethodName(coordMethod),
     );
-    if (coordMethod !== localeMethod) {
-      console.log(
-        "[islam] locale and coords disagree → using coords (more accurate)",
-      );
-      return coordMethod;
-    }
-    console.log("[islam] locale and coords agree → using that method");
-    return localeMethod;
+    return coordMethod;
   }
 
-  // No coordinates available — fall back to locale
+  // No coordinates — fall back to locale
+  const localeMethod = detectMethodFromLocale(navigator.language);
+  console.log(
+    "[islam] locale:",
+    navigator.language,
+    "→ method:",
+    getAdhanMethodName(localeMethod),
+  );
   return localeMethod;
 }
 
@@ -142,6 +141,7 @@ export function getAdhanMethodName(
     karachi: "Karachi",
     northAmerica: "North America (ISNA)",
     tehran: "Tehran",
+    turkey: "Turkey (Diyanet)",
   };
   return names[method];
 }
@@ -165,6 +165,8 @@ export function getAdhanCalculationMethod(
       return CalculationMethod.NorthAmerica();
     case "tehran":
       return CalculationMethod.Tehran();
+    case "turkey":
+      return CalculationMethod.Turkey();
   }
 }
 
