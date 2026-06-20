@@ -180,19 +180,18 @@ function renderPrayerTimes(): void {
   highlightPrayers(mandatoryPrayers);
 }
 
-function getNextPrayer(): { id: string; label: string; time: Date } | null {
+export function getNextPrayer(): { id: string; label: string; time: Date } | null {
   if (!prayerTimesDisplay) return null;
 
   const now = new Date();
-  const prayers = getAllPrayerTimes().map((p) => ({
-    id: p.id,
-    label: p.label,
-    time: p.time,
-  }));
+  // Only consider mandatory prayers (Fajr, Sunrise, Dhuhr, Asr, Maghrib,
+  // Isha) for the countdown. Sunnah prayers (Dhuha, Middle of Night, Last
+  // Third) are optional — the user may not have them toggled in settings.
+  const mandatory = getAllPrayerTimes().filter((p) => !p.isSunnah);
 
-  for (const prayer of prayers) {
+  for (const prayer of mandatory) {
     if (prayer.time > now) {
-      return prayer;
+      return { id: prayer.id, label: prayer.label, time: prayer.time };
     }
   }
 
