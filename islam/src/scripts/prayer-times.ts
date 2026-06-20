@@ -5,7 +5,7 @@ import {
   Madhab,
   SunnahTimes,
 } from "adhan";
-import type { Settings, PrayerId } from "../lib/settings";
+import type { Settings, PrayerId, SunnahPrayer } from "../lib/settings";
 import {
   resolveMethod,
   getAdhanCalculationMethod,
@@ -184,18 +184,23 @@ export function getNextPrayer(): { id: string; label: string; time: Date } | nul
   if (!prayerTimesDisplay) return null;
 
   const now = new Date();
-  // Only consider mandatory prayers (Fajr, Sunrise, Dhuhr, Asr, Maghrib,
-  // Isha) for the countdown. Sunnah prayers (Dhuha, Middle of Night, Last
-  // Third) are optional — the user may not have them toggled in settings.
-  const mandatory = getAllPrayerTimes().filter((p) => !p.isSunnah);
 
-  for (const prayer of mandatory) {
+  // Get all prayer times and filter to only enabled prayers.
+  // Mandatory prayers are always included. Sunnah prayers are included
+  // only if the user has toggled them on in settings.
+  const all = getAllPrayerTimes();
+  const enabled = all.filter((p) => {
+    if (!p.isSunnah) return true;
+    if (!currentSettings) return false;
+    return currentSettings.sunnahPrayers[p.id as SunnahPrayer] === true;
+  });
+
+  for (const prayer of enabled) {
     if (prayer.time > now) {
       return { id: prayer.id, label: prayer.label, time: prayer.time };
     }
   }
 
-  // All prayers passed — next is tomorrow's Fajr
   return null;
 }
 
@@ -213,15 +218,33 @@ function updateCountdown(): void {
   const countdownEl = document.getElementById("next-prayer-countdown");
 
   if (!next) {
+    // All today's prayers (including enabled sunnah) have passed.
+    // Show countdown to tomorrow's Fajr.
     if (nameEl) nameEl.textContent = "Fajr (tomorrow)";
-    if (countdownEl) countdownEl.textContent = "--:--:--";
+    if (countdownEl && prayerTimesDisplay) {
+      // Tomorrow's Fajr ≈ today's Fajr + 24 hours
+      const tomorrowFajr = new Date(
+        prayerTimesDisplay.fajr.getTime() + 24 * 60 * 60 * 1000,
+      );
+      const diff = tomorrowFajr.getTime() - Date.now();
+      if (diff > 0) {
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        countdownEl.textContent =
+          `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      } else {
+        countdownEl.textContent = "--:--:--";
+      }
+    } else if (countdownEl) {
+      countdownEl.textContent = "--:--:--";
+    }
     return;
   }
 
   if (nameEl) nameEl.textContent = next.label;
 
-  const now = new Date();
-  const diff = next.time.getTime() - now.getTime();
+  const diff = next.time.getTime() - Date.now();
 
   if (diff <= 0) {
     if (countdownEl) countdownEl.textContent = "00:00:00";
