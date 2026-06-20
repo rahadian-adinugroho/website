@@ -13,7 +13,7 @@
       <span class="absolute top-2 text-xs text-gray-500 dark:text-gray-400">📱</span>
 
       <!-- Arrow -->
-      <svg id="qibla-arrow" class="w-32 h-32 transition-transform duration-300 ease-out" viewBox="0 0 100 100" style="transform: rotate(0deg)">
+      <svg id="qibla-arrow" class="w-32 h-32" viewBox="0 0 100 100" style="transform: rotate(0deg)">
         <!-- Arrow pointing up (toward Qibla) -->
         <polygon points="50,10 35,50 45,50 45,90 55,90 55,50 65,50" fill="#16a34a" />
       </svg>
@@ -38,7 +38,7 @@
                 class="text-gray-400 dark:text-gray-500" />
           <!-- Phone icon tracing the path -->
           <rect x="-12" y="-8" width="24" height="16" rx="3" fill="#16a34a" opacity="0.9">
-            <animateMotion dur="3s" repeatCount="indefinite" rotate="auto"
+            <animateMotion id="prominent-guide-anim" begin="indefinite" dur="3s" repeatCount="indefinite" rotate="auto"
               path="M 30 50 C 50 20, 80 20, 100 50 C 120 80, 150 80, 170 50 C 150 20, 120 20, 100 50 C 80 80, 50 80, 30 50 Z" />
           </rect>
         </svg>
@@ -70,7 +70,7 @@
                   class="text-gray-400 dark:text-gray-500" />
             <!-- Phone icon tracing the path -->
             <rect x="-12" y="-8" width="24" height="16" rx="3" fill="#16a34a" opacity="0.9">
-              <animateMotion dur="3s" repeatCount="indefinite" rotate="auto"
+              <animateMotion id="modal-guide-anim" begin="indefinite" dur="3s" repeatCount="indefinite" rotate="auto"
                 path="M 30 50 C 50 20, 80 20, 100 50 C 120 80, 150 80, 170 50 C 150 20, 120 20, 100 50 C 80 80, 50 80, 30 50 Z" />
             </rect>
           </svg>
@@ -94,15 +94,35 @@
   const modal = document.getElementById("accuracy-guide-modal");
   const modalClose = document.getElementById("accuracy-guide-close");
   const modalBackdrop = document.getElementById("accuracy-guide-backdrop");
+  const prominentAnim = document.getElementById("prominent-guide-anim");
+  const modalAnim = document.getElementById("modal-guide-anim");
 
   const isIOS =
     typeof DeviceOrientationEvent !== "undefined" &&
     typeof (DeviceOrientationEvent as any).requestPermission === "function";
 
+  function startAnim(anim: HTMLElement | null) {
+    if (anim && typeof (anim as any).beginElement === "function") {
+      (anim as any).beginElement();
+    }
+  }
+
+  function stopAnim(anim: HTMLElement | null) {
+    if (anim && typeof (anim as any).endElement === "function") {
+      (anim as any).endElement();
+    }
+  }
+
   // --- iOS: live accuracy updates toggle prominent guide ---
   if (isIOS && guideProminent) {
     window.addEventListener("qibla:accuracy", ((e: CustomEvent) => {
-      guideProminent.hidden = e.detail.accuracy <= 20;
+      const isInaccurate = e.detail.accuracy > 20;
+      guideProminent.hidden = !isInaccurate;
+      if (isInaccurate) {
+        startAnim(prominentAnim);
+      } else {
+        stopAnim(prominentAnim);
+      }
     }) as EventListener);
   }
 
@@ -111,6 +131,7 @@
     function openModal() {
       modal.hidden = false;
       document.body.style.overflow = "hidden";
+      startAnim(modalAnim);
       // Focus the close button for accessibility
       requestAnimationFrame(() => modalClose!.focus());
     }
@@ -118,6 +139,7 @@
     function closeModal() {
       modal.hidden = true;
       document.body.style.overflow = "";
+      stopAnim(modalAnim);
     }
 
     finePrint.addEventListener("click", openModal);
