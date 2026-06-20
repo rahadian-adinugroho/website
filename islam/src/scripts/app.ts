@@ -1,5 +1,9 @@
 import { initPrayerTimes } from "./prayer-times";
-import { initQibla, requestCompassPermission } from "./qibla";
+import {
+  initQibla,
+  destroyQibla,
+  requestCompassPermission,
+} from "./qibla";
 
 const requestBtn = document.getElementById("request-location-btn");
 const retryBtn = document.getElementById("retry-location-btn");
@@ -13,30 +17,89 @@ const isIOS =
 
 console.log("[islam] init, isIOS:", isIOS);
 
-// Render Gregorian date client-side to respect user's timezone
-function renderGregorianDate(): void {
-  const el = document.getElementById("gregorian-date");
-  if (el) {
-    el.textContent = new Date().toLocaleDateString(undefined, {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+// Tab state
+let activeTab: "prayer-times" | "qibla" = "prayer-times";
+let userLat: number | null = null;
+let userLng: number | null = null;
+
+// --- Tab switching ---
+
+function switchTab(tab: "prayer-times" | "qibla") {
+  if (tab === activeTab) return;
+  activeTab = tab;
+
+  const btnPrayer = document.getElementById("tab-btn-prayer-times");
+  const btnQibla = document.getElementById("tab-btn-qibla");
+  const panelPrayer = document.getElementById("tab-panel-prayer-times");
+  const panelQibla = document.getElementById("tab-panel-qibla");
+
+  // Update button styles
+  const activeClasses = [
+    "text-primary-700",
+    "dark:text-primary-400",
+    "border-primary-600",
+  ];
+  const inactiveClasses = [
+    "text-gray-500",
+    "dark:text-gray-400",
+    "border-transparent",
+  ];
+
+  if (btnPrayer) {
+    btnPrayer.classList.remove(...(tab === "prayer-times" ? inactiveClasses : activeClasses));
+    btnPrayer.classList.add(...(tab === "prayer-times" ? activeClasses : inactiveClasses));
+    btnPrayer.setAttribute("aria-selected", String(tab === "prayer-times"));
+  }
+  if (btnQibla) {
+    btnQibla.classList.remove(...(tab === "qibla" ? inactiveClasses : activeClasses));
+    btnQibla.classList.add(...(tab === "qibla" ? activeClasses : inactiveClasses));
+    btnQibla.setAttribute("aria-selected", String(tab === "qibla"));
+  }
+
+  // Toggle panels
+  if (panelPrayer) panelPrayer.hidden = tab !== "prayer-times";
+  if (panelQibla) panelQibla.hidden = tab !== "qibla";
+
+  // Lifecycle: init / destroy Qibla to avoid sensor CPU when not visible
+  if (tab === "qibla") {
+    if (userLat !== null && userLng !== null) {
+      initQibla(userLat, userLng);
+    }
+  } else {
+    destroyQibla();
   }
 }
 
+// --- Geolocation ---
+
 function handleLocationSuccess(position: GeolocationPosition) {
-  console.log("[islam] geolocation success:", position.coords.latitude, position.coords.longitude);
+  console.log(
+    "[islam] geolocation success:",
+    position.coords.latitude,
+    position.coords.longitude,
+  );
   const { latitude, longitude } = position.coords;
+
+  // Store for later use by Qibla tab
+  userLat = latitude;
+  userLng = longitude;
 
   // Hide all request/error UI
   if (locationRequest) locationRequest.hidden = true;
   if (locationError) locationError.hidden = true;
 
-  // Initialize features
+  // Show next-prayer card (shared above tabs)
+  const nextPrayerCard = document.getElementById("next-prayer-card");
+  if (nextPrayerCard) nextPrayerCard.hidden = false;
+
+  // Initialize prayer times (always, regardless of tab)
   initPrayerTimes(latitude, longitude);
-  initQibla(latitude, longitude);
+
+  // If the Qibla tab is already active (e.g., user switched before location
+  // arrived), initialize Qibla now.
+  if (activeTab === "qibla") {
+    initQibla(latitude, longitude);
+  }
 
   // Check if iOS compass permission is needed
   const compassBtn = document.getElementById("compass-permission-btn");
@@ -49,6 +112,66 @@ function handleLocationSuccess(position: GeolocationPosition) {
     });
   }
 }
+
+// --- Init ---
+
+// Render date immediately
+function renderGregorianDate(): void {
+  const el = document.getElementById("gregorian-date");
+  if (el) {
+    el.textContent = new Date().toLocaleDateString(undefined, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+}
+renderGregorianDate();
+
+// Wire tab buttons
+document.getElementById("tab-btn-prayer-times")?.addEventListener("click", () => {
+  switchTab("prayer-times");
+});
+document.getElementById("tab-btn-qibla")?.addEventListener("click", () => {
+  switchTab("qibla");
+});
+
+// Auto-request geolocation on page load for all platforms.
+// If permission is already granted, the browser returns the position
+// immediately without showing a prompt. If not decided, it shows the
+// prompt. If denied, the error handler shows the button for manual retry.
+console.log("[islam] auto-requesting geolocation");
+
+function requestLocation() {
+  if (!navigator.geolocation) {
+    console.log("[islam] geolocation not supported");
+    if (locationRequest) locationRequest.hidden = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    handleLocationSuccess,
+    handleLocationError,
+    { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 },
+  );
+}
+requestLocation();
+
+// Manual request button
+requestBtn?.addEventListener("click", () => {
+  console.log("[islam] request button clicked");
+  requestLocation();
+});
+
+// Retry button re-triggers geolocation
+retryBtn?.addEventListener("click", () => {
+  console.log("[islam] retry button clicked");
+  if (locationError) locationError.hidden = true;
+  requestLocation();
+});
+
+// --- Location error handler (kept at end for readability) ---
 
 function handleLocationError(error: GeolocationPositionError) {
   console.log("[islam] geolocation error:", error.code, error.message);
@@ -69,13 +192,13 @@ function handleLocationError(error: GeolocationPositionError) {
       if (locationRequest) locationRequest.hidden = true;
       if (locationError) locationError.hidden = false;
     } else {
-      // Non-iOS — show the request button for manual retry
       if (locationError) locationError.hidden = true;
       if (locationRequest) locationRequest.hidden = false;
     }
   } else if (error.code === error.POSITION_UNAVAILABLE) {
     if (errorMsg) {
-      errorMsg.textContent = "Location unavailable. Please check your internet connection and GPS settings.";
+      errorMsg.textContent =
+        "Location unavailable. Please check your internet connection and GPS settings.";
     }
     if (locationRequest) locationRequest.hidden = true;
     if (locationError) locationError.hidden = false;
@@ -87,55 +210,4 @@ function handleLocationError(error: GeolocationPositionError) {
     if (locationRequest) locationRequest.hidden = true;
     if (locationError) locationError.hidden = false;
   }
-}
-
-function requestLocation() {
-  console.log("[islam] requestLocation() called");
-
-  if (!navigator.geolocation) {
-    console.log("[islam] geolocation not supported");
-    if (locationRequest) locationRequest.hidden = false;
-    return;
-  }
-
-  console.log("[islam] calling getCurrentPosition...");
-  navigator.geolocation.getCurrentPosition(
-    handleLocationSuccess,
-    handleLocationError,
-    {
-      enableHighAccuracy: false,
-      timeout: 20000,
-      maximumAge: 300000,
-    }
-  );
-}
-
-// Render date immediately
-renderGregorianDate();
-
-// Auto-request geolocation on page load for all platforms.
-// If permission is already granted, the browser returns the position
-// immediately without showing a prompt. If not decided, it shows the
-// prompt. If denied, the error handler shows the button for manual retry.
-// Note: iOS Safari may cache a silent denial if getCurrentPosition is
-// called without a user gesture when permission is in "prompt" state —
-// but if permission is already granted, this works fine.
-console.log("[islam] auto-requesting geolocation");
-requestLocation();
-
-// Manual request button
-if (requestBtn) {
-  requestBtn.addEventListener("click", () => {
-    console.log("[islam] request button clicked");
-    requestLocation();
-  });
-}
-
-// Retry button re-triggers geolocation
-if (retryBtn) {
-  retryBtn.addEventListener("click", function () {
-    console.log("[islam] retry button clicked");
-    if (locationError) locationError.hidden = true;
-    requestLocation();
-  });
 }
