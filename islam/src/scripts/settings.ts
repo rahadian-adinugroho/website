@@ -63,6 +63,7 @@ export function closeSettings(): void {
 
 export function initSettings(): void {
   currentSettings = loadSettings();
+  applySettingsToForm(currentSettings);
 
   // Wire up event listeners (only once)
   wireEvents();
@@ -140,7 +141,7 @@ function wireEvents(): void {
 
 }
 
-function applySettingsToForm(settings: Settings): void {
+export function applySettingsToForm(settings: Settings): void {
   // Set calculation method select
   const calcSelect = document.querySelector<HTMLSelectElement>('select[name="settings-calc-method"]');
   if (calcSelect) calcSelect.value = settings.calcMethod;
