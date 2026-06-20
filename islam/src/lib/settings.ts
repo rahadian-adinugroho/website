@@ -86,7 +86,8 @@ export function detectMethodFromCoordinates(
   return "muslimWorldLeague";
 }
 
-/** Resolve "automatic" to a concrete method. Tries locale first, then coordinates. */
+/** Resolve "automatic" to a concrete method. Cross-checks locale and
+ * coordinates — coordinates are more authoritative when both are available. */
 export function resolveMethod(
   settings: Settings,
   lat?: number,
@@ -102,12 +103,11 @@ export function resolveMethod(
     "→ locale method:",
     getAdhanMethodName(localeMethod),
   );
-  // If locale fell back to MWL and we have coordinates, try coordinate-based
-  if (
-    localeMethod === "muslimWorldLeague" &&
-    lat !== undefined &&
-    lng !== undefined
-  ) {
+
+  // If we have coordinates, cross-check. Coordinates are more authoritative
+  // than browser language (e.g., an English-speaking user in Indonesia
+  // should get Singapore method, not MWL).
+  if (lat !== undefined && lng !== undefined) {
     const coordMethod = detectMethodFromCoordinates(lat, lng);
     console.log(
       "[islam] coords:",
@@ -116,8 +116,17 @@ export function resolveMethod(
       "→ coord method:",
       getAdhanMethodName(coordMethod),
     );
-    return coordMethod;
+    if (coordMethod !== localeMethod) {
+      console.log(
+        "[islam] locale and coords disagree → using coords (more accurate)",
+      );
+      return coordMethod;
+    }
+    console.log("[islam] locale and coords agree → using that method");
+    return localeMethod;
   }
+
+  // No coordinates available — fall back to locale
   return localeMethod;
 }
 
