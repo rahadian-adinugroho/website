@@ -69,6 +69,30 @@ describe("i18n", () => {
       });
       expect(detectLocale()).toBe("en");
     });
+
+    it("returns 'en' when localStorage is empty (browser fallback)", () => {
+      // localStorage was cleared in beforeEach; browser is default en-US
+      expect(detectLocale()).toBe("en");
+    });
+
+    it("returns 'id' when localStorage is empty and browser is id-*", () => {
+      Object.defineProperty(navigator, "language", {
+        value: "id-ID",
+        configurable: true,
+      });
+      expect(detectLocale()).toBe("id");
+    });
+
+    it("falls back to browser after localStorage.removeItem('islam:lang')", () => {
+      Object.defineProperty(navigator, "language", {
+        value: "en-US",
+        configurable: true,
+      });
+      localStorage.setItem("islam:lang", "id");
+      expect(detectLocale()).toBe("id");
+      localStorage.removeItem("islam:lang");
+      expect(detectLocale()).toBe("en");
+    });
   });
 
   describe("setLocale", () => {
