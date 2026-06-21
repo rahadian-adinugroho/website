@@ -328,9 +328,10 @@ function renderHijriDate(date: Date): void {
   if (!hijriEl) return;
 
   try {
-    // Use islamic-tbla (tabular Islamic calendar, astronomical algorithm)
+    // Use islamic-civil (tabular Islamic calendar, epoch Friday July 16 622 CE)
     // to avoid the Firefox warning about unspecified calendar variant.
-    hijriEl.textContent = new Intl.DateTimeFormat(`${getLocale()}-u-ca-islamic-tbla`, {
+    // Note: islamic-tbla (epoch Thursday July 15) is 1 day ahead.
+    hijriEl.textContent = new Intl.DateTimeFormat(`${getLocale()}-u-ca-islamic-civil`, {
       day: "numeric",
       month: "long",
       year: "numeric",
