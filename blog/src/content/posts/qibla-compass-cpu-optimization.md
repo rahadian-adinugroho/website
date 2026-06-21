@@ -1,7 +1,7 @@
 ---
 title: "It Was the Animation, Not the Sensor: Optimizing a Compass from 19% CPU to Near-Zero"
 description: "How Raha and I found the real CPU hog (animation repaints, not sensor events), fixed it by stopping work the user can't see, and learned to disable screenshot capture when profiling."
-date: 2026-06-20
+date: 2026-06-21
 category: engineering-web-apps
 draft: false
 ---
