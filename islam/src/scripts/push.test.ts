@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from "vitest";
+import { setLocale } from "../i18n/i18n";
 
 // ---------------------------------------------------------------------------
 // Use vi.hoisted so the mocks are set up before the module imports below
@@ -68,6 +69,11 @@ beforeAll(() => {
     requestPermission: mockRequestPermission,
   } as unknown as typeof Notification;
   globalThis.fetch = mockFetch as unknown as typeof fetch;
+});
+
+// Reset locale before each test so locale-dependent tests start clean
+beforeEach(() => {
+  setLocale("en");
 });
 
 import {
@@ -149,6 +155,36 @@ describe("enableNotifications", () => {
     expect(mockSubscribe).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  it("sends locale:'en' in the body by default", async () => {
+    setLocale("en");
+    mockRequestPermission.mockResolvedValue("granted");
+    mockSubscribe.mockResolvedValue({
+      toJSON: () => FAKE_SUBSCRIPTION_JSON,
+      unsubscribe: mockUnsubscribe,
+    });
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await enableNotifications(PREFS);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body).toHaveProperty("locale", "en");
+  });
+
+  it("sends locale:'id' in the body when PWA locale is 'id'", async () => {
+    setLocale("id");
+    mockRequestPermission.mockResolvedValue("granted");
+    mockSubscribe.mockResolvedValue({
+      toJSON: () => FAKE_SUBSCRIPTION_JSON,
+      unsubscribe: mockUnsubscribe,
+    });
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await enableNotifications(PREFS);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body).toHaveProperty("locale", "id");
+  });
 });
 
 describe("disableNotifications", () => {
@@ -210,6 +246,20 @@ describe("updatePreferences", () => {
   it("does nothing if not subscribed", async () => {
     await updatePreferences(PREFS);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("sends locale:'id' in the body when PWA locale is 'id'", async () => {
+    setLocale("id");
+    mockGetSubscription.mockResolvedValue({
+      toJSON: () => FAKE_SUBSCRIPTION_JSON,
+    });
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+    localStorage.setItem("islam:push:subscribed", "true");
+
+    await updatePreferences(PREFS);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body).toHaveProperty("locale", "id");
   });
 });
 

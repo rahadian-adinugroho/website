@@ -1,4 +1,5 @@
 import { getUserLocation } from "../lib/location";
+import { getLocale } from "../i18n/i18n";
 
 const VAPID_PUBLIC_KEY = "BO52m2RzNMPmB1E8ZeShL6uDgtx8qjSHjwkW7nt5AP2kqPUhilePDf_Vki89XUB3nqQ63jv7qBYaLqkgcDWi-DY";
 const WORKER_URL = "https://islam-push.raharoho.me";
@@ -56,6 +57,7 @@ export async function enableNotifications(prefs: PushPrefs): Promise<void> {
     body.lat = loc.lat;
     body.lng = loc.lng;
   }
+  body.locale = getLocale();
 
   const res = await fetch(`${WORKER_URL}/api/subscribe`, {
     method: "POST",
@@ -148,6 +150,7 @@ export async function updatePreferences(prefs: PushPrefs): Promise<void> {
     body.lat = loc.lat;
     body.lng = loc.lng;
   }
+  body.locale = getLocale();
 
   try {
     const res = await fetch(`${WORKER_URL}/api/preferences`, {
