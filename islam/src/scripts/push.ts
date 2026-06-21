@@ -102,6 +102,29 @@ export async function disableNotifications(): Promise<void> {
   console.log("[push] successfully unsubscribed");
 }
 
+/**
+ * Check if the user is currently subscribed to push notifications.
+ * Returns the subscription object if subscribed, null otherwise.
+ */
+export async function getPushSubscription(): Promise<PushSubscriptionJSON | null> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    return null;
+  }
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    return await registration.pushManager.getSubscription();
+  } catch (err) {
+    console.warn("[push] failed to get subscription", err);
+    return null;
+  }
+}
+
+interface PushSubscriptionJSON {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  expirationTime: number | null;
+}
+
 export async function updatePreferences(prefs: PushPrefs): Promise<void> {
   const subscribed = localStorage.getItem("islam:push:subscribed") === "true";
   if (!subscribed) return;

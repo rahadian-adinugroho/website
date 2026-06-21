@@ -13,6 +13,7 @@ import {
   enableNotifications,
   disableNotifications,
   updatePreferences,
+  getPushSubscription,
   type PushPrefs,
 } from "./push";
 
@@ -76,6 +77,58 @@ export function initSettings(): void {
 
   // Update detected method label on page load
   updateDetectedMethod();
+
+  // Check actual subscription state (from PushManager, not localStorage)
+  // and update the UI accordingly.
+  refreshNotificationUI();
+}
+
+/**
+ * Check the actual push subscription state and update the UI.
+ * - If subscribed: show "Disable Notifications" button + preference checkboxes
+ *   (with saved prefs loaded into them)
+ * - If not subscribed: show "Enable Notifications" button
+ */
+async function refreshNotificationUI(): Promise<void> {
+  const subscription = await getPushSubscription();
+  const enableBtn = $("enable-notifications-btn");
+  const prefsEl = $("notification-prefs");
+
+  if (subscription) {
+    // Subscribed — show Disable button + checkboxes
+    if (enableBtn) {
+      enableBtn.textContent = t("settings.disableNotifications");
+      enableBtn.dataset.enabled = "true";
+    }
+    if (prefsEl) prefsEl.hidden = false;
+
+    // Load saved prefs into checkboxes
+    const savedPrefs = localStorage.getItem("islam:push:prefs");
+    if (savedPrefs) {
+      try {
+        const prefs: PushPrefs = JSON.parse(savedPrefs);
+        const fajr = document.querySelector<HTMLInputElement>('input[name="notify-fajr"]');
+        const dhuhr = document.querySelector<HTMLInputElement>('input[name="notify-dhuhr"]');
+        const asr = document.querySelector<HTMLInputElement>('input[name="notify-asr"]');
+        const maghrib = document.querySelector<HTMLInputElement>('input[name="notify-maghrib"]');
+        const isha = document.querySelector<HTMLInputElement>('input[name="notify-isha"]');
+        if (fajr) fajr.checked = prefs.fajr;
+        if (dhuhr) dhuhr.checked = prefs.dhuhr;
+        if (asr) asr.checked = prefs.asr;
+        if (maghrib) maghrib.checked = prefs.maghrib;
+        if (isha) isha.checked = prefs.isha;
+      } catch {
+        // Ignore parse errors — defaults are all checked
+      }
+    }
+  } else {
+    // Not subscribed — show Enable button
+    if (enableBtn) {
+      enableBtn.textContent = t("settings.enableNotifications");
+      enableBtn.dataset.enabled = "false";
+    }
+    if (prefsEl) prefsEl.hidden = true;
+  }
 }
 
 // --- Internal ---
@@ -129,20 +182,24 @@ function wireEvents(): void {
     updateDetectedMethod();
   });
 
-  // Push notification enable button
+  // Push notification enable/disable button
   const enableBtn = $("enable-notifications-btn");
   if (enableBtn) {
     enableBtn.addEventListener("click", async () => {
+      const isEnabled = enableBtn.dataset.enabled === "true";
       const prefs = getPushPrefs();
       try {
-        await enableNotifications(prefs);
-        // Show preference checkboxes, hide enable button
-        const prefsEl = $("notification-prefs");
-        if (prefsEl) prefsEl.hidden = false;
-        enableBtn.textContent = t("settings.disableNotifications");
-        enableBtn.dataset.enabled = "true";
+        if (isEnabled) {
+          // Currently subscribed — disable
+          await disableNotifications();
+        } else {
+          // Not subscribed — enable
+          await enableNotifications(prefs);
+        }
+        // Refresh UI to reflect the new state
+        await refreshNotificationUI();
       } catch (err) {
-        console.error("[push] enable failed", err);
+        console.error("[push] toggle failed", err);
       }
     });
   }

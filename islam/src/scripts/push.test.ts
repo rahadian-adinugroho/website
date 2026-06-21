@@ -74,6 +74,7 @@ import {
   enableNotifications,
   disableNotifications,
   updatePreferences,
+  getPushSubscription,
   type PushPrefs,
 } from "./push";
 
@@ -209,5 +210,32 @@ describe("updatePreferences", () => {
   it("does nothing if not subscribed", async () => {
     await updatePreferences(PREFS);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("getPushSubscription", () => {
+  afterEach(() => {
+    mockGetSubscription.mockReset();
+  });
+
+  it("returns the current subscription when subscribed", async () => {
+    mockGetSubscription.mockResolvedValue({
+      endpoint: FAKE_SUBSCRIPTION_JSON.endpoint,
+      keys: FAKE_SUBSCRIPTION_JSON.keys,
+      expirationTime: null,
+    });
+
+    const sub = await getPushSubscription();
+
+    expect(sub).not.toBeNull();
+    expect(sub?.endpoint).toBe(FAKE_SUBSCRIPTION_JSON.endpoint);
+    expect(sub?.keys).toEqual(FAKE_SUBSCRIPTION_JSON.keys);
+  });
+
+  it("returns null when not subscribed", async () => {
+    mockGetSubscription.mockResolvedValue(null);
+
+    const sub = await getPushSubscription();
+    expect(sub).toBeNull();
   });
 });
