@@ -44,9 +44,11 @@ export async function enableNotifications(prefs: PushPrefs): Promise<void> {
   const loc = getUserLocation();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  // Send to worker
+  // Send to worker — Worker expects flat fields (endpoint, keys at top level)
+  const sub = subscription.toJSON();
   const body: Record<string, unknown> = {
-    subscription: subscription.toJSON(),
+    endpoint: sub.endpoint,
+    keys: sub.keys,
     timezone,
     prefs,
   };
@@ -79,12 +81,13 @@ export async function disableNotifications(): Promise<void> {
   const subscription = await registration.pushManager.getSubscription();
 
   if (subscription) {
-    // Notify worker
+    // Notify worker — Worker expects flat fields (endpoint at top level)
     try {
+      const sub = subscription.toJSON();
       await fetch(`${WORKER_URL}/api/unsubscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: subscription.toJSON() }),
+        body: JSON.stringify({ endpoint: sub.endpoint }),
       });
     } catch (err) {
       console.warn("[push] failed to notify worker of unsubscription", err);
@@ -110,8 +113,11 @@ export async function updatePreferences(prefs: PushPrefs): Promise<void> {
   const loc = getUserLocation();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+  // Worker expects flat fields (endpoint, keys at top level)
+  const sub = subscription.toJSON();
   const body: Record<string, unknown> = {
-    subscription: subscription.toJSON(),
+    endpoint: sub.endpoint,
+    keys: sub.keys,
     timezone,
     prefs,
   };
