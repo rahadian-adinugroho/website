@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" version="1.2" baseProfile="tiny-ps">
-  <title>Rahadian Adinugroho</title>
-  <rect width="32" height="32" rx="8" fill="#166534"/>
-  <text x="16" y="22" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="bold" font-size="19" fill="#4ade80">R</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Islam</title>
+  <!-- Outer ring -->
+  <circle cx="32" cy="32" r="28" fill="none" stroke="#16a34a" stroke-width="3"/>
+  <!-- Crescent: green disc with a smaller disc subtracted, leaving the right-facing moon -->
+  <mask id="crescent">
+    <rect width="64" height="64" fill="white"/>
+    <circle cx="38" cy="26" r="13" fill="black"/>
+  </mask>
+  <circle cx="32" cy="32" r="13" fill="#16a34a" mask="url(#crescent)"/>
+  <!-- 5-pointed star (centered in the crescent's curve, top-right) -->
+  <polygon points="40,22 41.5,27 46.5,27 42.5,30 44,35 40,32 36,35 37.5,30 33.5,27 38.5,27" fill="#16a34a"/>
 </svg>
