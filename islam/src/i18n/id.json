@@ -11,6 +11,7 @@
   "location.errorDeniedIos": "Akses lokasi ditolak. Untuk memperbaikinya di iOS: 1. Pengaturan → Privasi & Keamanan → Layanan Lokasi → Aktifkan Layanan Lokasi 2. Gulir ke Safari → pilih 'Saat Menggunakan App' 3. Muat ulang halaman ini",
   "location.errorUnavailable": "Lokasi tidak tersedia. Periksa koneksi internet dan pengaturan GPS Anda.",
   "location.errorTimeout": "Permintaan habis waktu. Silakan coba lagi.",
+  "location.cachedWarning": "Menggunakan lokasi terakhir Anda yang tersimpan. Waktu salat dan arah Kiblat mungkin tidak akurat jika Anda berpindah sejak kunjungan terakhir.",
   "prayer.heading": "Waktu Sholat",
   "prayer.fajr": "Subuh",
   "prayer.sunrise": "Terbit",
