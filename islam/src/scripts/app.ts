@@ -1,4 +1,4 @@
-import { initI18n, t } from "../i18n/i18n";
+import { initI18n, t, getLocale } from "../i18n/i18n";
 import { initPrayerTimes } from "./prayer-times";
 import {
   initCompass,
@@ -137,7 +137,7 @@ function handleLocationSuccess(position: GeolocationPosition) {
 function renderGregorianDate(): void {
   const el = document.getElementById("gregorian-date");
   if (el) {
-    el.textContent = new Date().toLocaleDateString(undefined, {
+    el.textContent = new Date().toLocaleDateString(getLocale(), {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -146,6 +146,11 @@ function renderGregorianDate(): void {
   }
 }
 renderGregorianDate();
+
+// Re-render gregorian date when language changes
+window.addEventListener("locale:changed", () => {
+  renderGregorianDate();
+});
 
 // Initialize settings panel
 initSettings();
