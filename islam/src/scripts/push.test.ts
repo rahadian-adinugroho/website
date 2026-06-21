@@ -36,6 +36,17 @@ const {
 // Mock the location module
 vi.mock("../lib/location", () => ({
   getUserLocation: () => ({ lat: -6.2, lng: 106.8 }),
+  markServerSynced: vi.fn(),
+}));
+
+// Mock the settings module so push.ts can resolve calcMethod
+vi.mock("../lib/settings", () => ({
+  loadSettings: () => ({
+    version: 1 as const,
+    calcMethod: "singapore",
+    sunnahPrayers: { dhuha: false, middleOfNight: false, lastThirdOfNight: false },
+  }),
+  resolveMethod: () => "singapore",
 }));
 
 // Set up browser globals
@@ -81,6 +92,7 @@ import {
   disableNotifications,
   updatePreferences,
   getPushSubscription,
+  syncServerState,
   type PushPrefs,
 } from "./push";
 
@@ -133,6 +145,7 @@ describe("enableNotifications", () => {
     expect(body).toHaveProperty("prefs", PREFS);
     expect(body).toHaveProperty("lat", -6.2);
     expect(body).toHaveProperty("lng", 106.8);
+    expect(body).toHaveProperty("calcMethod", "singapore");
   });
 
   it("stores subscribed state in localStorage on success", async () => {
@@ -240,6 +253,7 @@ describe("updatePreferences", () => {
     expect(body).toHaveProperty("keys");
     expect(body.keys).toEqual(FAKE_SUBSCRIPTION_JSON.keys);
     expect(body).toHaveProperty("prefs", PREFS);
+    expect(body).toHaveProperty("calcMethod", "singapore");
     expect(body).not.toHaveProperty("subscription");
   });
 
@@ -260,6 +274,43 @@ describe("updatePreferences", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body).toHaveProperty("locale", "id");
+  });
+});
+
+describe("syncServerState", () => {
+  afterEach(() => {
+    mockGetSubscription.mockReset();
+    mockFetch.mockReset();
+    localStorage.clear();
+  });
+
+  it("sends calcMethod in the body to /api/subscribe", async () => {
+    mockGetSubscription.mockResolvedValue({
+      toJSON: () => FAKE_SUBSCRIPTION_JSON,
+    });
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await syncServerState(PREFS);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/api/subscribe");
+
+    const body = JSON.parse(options.body);
+    expect(body).toHaveProperty("calcMethod", "singapore");
+    expect(body).toHaveProperty("endpoint", FAKE_SUBSCRIPTION_JSON.endpoint);
+    expect(body).toHaveProperty("lat", -6.2);
+    expect(body).toHaveProperty("lng", 106.8);
+    expect(body).toHaveProperty("prefs", PREFS);
+    expect(body).toHaveProperty("locale", "en");
+  });
+
+  it("does nothing if not subscribed", async () => {
+    mockGetSubscription.mockResolvedValue(null);
+
+    await syncServerState(PREFS);
+
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
 

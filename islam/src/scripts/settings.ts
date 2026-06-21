@@ -176,12 +176,23 @@ function wireEvents(): void {
   // Calculation method select
   const calcSelect = document.querySelector<HTMLSelectElement>('select[name="settings-calc-method"]');
   if (calcSelect) {
-    calcSelect.addEventListener("change", () => {
+    calcSelect.addEventListener("change", async () => {
       const method = calcSelect.value as CalcMethod;
       currentSettings = { ...currentSettings, calcMethod: method };
       saveSettings(currentSettings);
       updateDetectedMethod();
       dispatchChanged();
+
+      // Re-subscribe if user has push enabled so the Worker uses the new method
+      const sub = await getPushSubscription();
+      if (sub) {
+        try {
+          await enableNotifications(getPushPrefs());
+          await refreshNotificationUI();
+        } catch (err) {
+          console.warn("[push] failed to update calc method on Worker", err);
+        }
+      }
     });
   }
 
