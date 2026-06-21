@@ -9,6 +9,12 @@ import {
   resolveMethod,
   getAdhanMethodName,
 } from "../lib/settings";
+import {
+  enableNotifications,
+  disableNotifications,
+  updatePreferences,
+  type PushPrefs,
+} from "./push";
 
 // --- Module-level state ---
 
@@ -123,6 +129,31 @@ function wireEvents(): void {
     updateDetectedMethod();
   });
 
+  // Push notification enable button
+  const enableBtn = $("enable-notifications-btn");
+  if (enableBtn) {
+    enableBtn.addEventListener("click", async () => {
+      const prefs = getPushPrefs();
+      try {
+        await enableNotifications(prefs);
+        // Show preference checkboxes, hide enable button
+        const prefsEl = $("notification-prefs");
+        if (prefsEl) prefsEl.hidden = false;
+        enableBtn.textContent = t("settings.disableNotifications");
+        enableBtn.dataset.enabled = "true";
+      } catch (err) {
+        console.error("[push] enable failed", err);
+      }
+    });
+  }
+
+  // Push notification checkbox changes
+  document.querySelectorAll<HTMLInputElement>('input[name^="notify-"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      updatePreferences(getPushPrefs());
+    });
+  });
+
   // Checkbox changes (sunnah prayers)
   document.querySelectorAll<HTMLInputElement>('input[name^="settings-sunnah-"]').forEach((input) => {
     input.addEventListener("change", () => {
@@ -184,4 +215,13 @@ function dispatchChanged(): void {
   window.dispatchEvent(
     new CustomEvent("settings:changed", { detail: currentSettings }),
   );
+}
+
+function getPushPrefs(): PushPrefs {
+  const fajr = document.querySelector<HTMLInputElement>('input[name="notify-fajr"]')?.checked ?? true;
+  const dhuhr = document.querySelector<HTMLInputElement>('input[name="notify-dhuhr"]')?.checked ?? true;
+  const asr = document.querySelector<HTMLInputElement>('input[name="notify-asr"]')?.checked ?? true;
+  const maghrib = document.querySelector<HTMLInputElement>('input[name="notify-maghrib"]')?.checked ?? true;
+  const isha = document.querySelector<HTMLInputElement>('input[name="notify-isha"]')?.checked ?? true;
+  return { fajr, dhuhr, asr, maghrib, isha };
 }
