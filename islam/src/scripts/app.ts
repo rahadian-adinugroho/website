@@ -6,7 +6,7 @@ import {
   requestCompassPermission,
 } from "./qibla";
 import { loadSettings } from "../lib/settings";
-import { setUserLocation } from "../lib/location";
+import { setUserLocation, getUserLocation, loadCachedLocation } from "../lib/location";
 import { initSettings, openSettings, closeSettings } from "./settings";
 
 const requestBtn = document.getElementById("request-location-btn");
@@ -177,6 +177,27 @@ document.getElementById("tab-btn-prayer-times")?.addEventListener("click", () =>
 document.getElementById("tab-btn-qibla")?.addEventListener("click", () => {
   switchTab("qibla");
 });
+
+// Hydrate location from cache so the UI renders immediately from cached data.
+// This allows prayer times to show instantly on repeat visits (including offline).
+if (loadCachedLocation()) {
+  const loc = getUserLocation();
+  if (loc) {
+    userLat = loc.lat;
+    userLng = loc.lng;
+
+    // Show next-prayer card
+    const nextPrayerCard = document.getElementById("next-prayer-card");
+    if (nextPrayerCard) nextPrayerCard.hidden = false;
+
+    // Initialize prayer times immediately from cached location
+    const settings = loadSettings();
+    initPrayerTimes(loc.lat, loc.lng, settings);
+
+    // Notify the settings panel so the "Using: X" label updates
+    window.dispatchEvent(new CustomEvent("location:updated"));
+  }
+}
 
 // Auto-request geolocation on page load for all platforms.
 // If permission is already granted, the browser returns the position
