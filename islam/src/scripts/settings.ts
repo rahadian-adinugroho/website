@@ -12,7 +12,6 @@ import {
 import {
   enableNotifications,
   disableNotifications,
-  updatePreferences,
   getPushSubscription,
   type PushPrefs,
 } from "./push";
@@ -85,33 +84,45 @@ export function initSettings(): void {
 
 /**
  * Check the actual push subscription state and update the UI.
- * - If subscribed: show "Disable Notifications" button + preference checkboxes
- *   (with saved prefs loaded into them)
- * - If not subscribed: show "Enable Notifications" button
+ *
+ * The prayer list is ALWAYS visible. When not subscribed:
+ *   - Toggles are disabled (greyed out via opacity-50)
+ *   - All checkboxes show as checked (default state)
+ *   - Hint text explains how to enable
+ *
+ * When subscribed:
+ *   - Toggles are enabled
+ *   - Checkboxes show actual saved preferences
+ *   - Toggling a prayer calls enableNotifications() with updated prefs
+ *   - The Worker receives a fresh subscribe with the same endpoint
+ *     and updated notify_* flags
  */
 async function refreshNotificationUI(): Promise<void> {
   const subscription = await getPushSubscription();
   const enableBtn = $("enable-notifications-btn");
   const prefsEl = $("notification-prefs");
+  const hintEl = $("notification-prefs-hint");
+
+  const fajr = document.querySelector<HTMLInputElement>('input[name="notify-fajr"]');
+  const dhuhr = document.querySelector<HTMLInputElement>('input[name="notify-dhuhr"]');
+  const asr = document.querySelector<HTMLInputElement>('input[name="notify-asr"]');
+  const maghrib = document.querySelector<HTMLInputElement>('input[name="notify-maghrib"]');
+  const isha = document.querySelector<HTMLInputElement>('input[name="notify-isha"]');
+  const checkboxes = [fajr, dhuhr, asr, maghrib, isha];
 
   if (subscription) {
-    // Subscribed — show Disable button + checkboxes
+    // Subscribed — enable button becomes "Disable", toggles become active
     if (enableBtn) {
       enableBtn.textContent = t("settings.disableNotifications");
       enableBtn.dataset.enabled = "true";
     }
-    if (prefsEl) prefsEl.hidden = false;
+    if (hintEl) hintEl.hidden = true;
 
     // Load saved prefs into checkboxes
     const savedPrefs = localStorage.getItem("islam:push:prefs");
     if (savedPrefs) {
       try {
         const prefs: PushPrefs = JSON.parse(savedPrefs);
-        const fajr = document.querySelector<HTMLInputElement>('input[name="notify-fajr"]');
-        const dhuhr = document.querySelector<HTMLInputElement>('input[name="notify-dhuhr"]');
-        const asr = document.querySelector<HTMLInputElement>('input[name="notify-asr"]');
-        const maghrib = document.querySelector<HTMLInputElement>('input[name="notify-maghrib"]');
-        const isha = document.querySelector<HTMLInputElement>('input[name="notify-isha"]');
         if (fajr) fajr.checked = prefs.fajr;
         if (dhuhr) dhuhr.checked = prefs.dhuhr;
         if (asr) asr.checked = prefs.asr;
@@ -121,13 +132,30 @@ async function refreshNotificationUI(): Promise<void> {
         // Ignore parse errors — defaults are all checked
       }
     }
+
+    // Enable toggles (remove disabled + opacity)
+    for (const cb of checkboxes) {
+      if (!cb) continue;
+      cb.disabled = false;
+      const label = cb.closest("label");
+      if (label) label.classList.remove("opacity-50");
+    }
   } else {
-    // Not subscribed — show Enable button
+    // Not subscribed — enable button is "Enable", toggles are disabled
     if (enableBtn) {
       enableBtn.textContent = t("settings.enableNotifications");
       enableBtn.dataset.enabled = "false";
     }
-    if (prefsEl) prefsEl.hidden = true;
+    if (hintEl) hintEl.hidden = false;
+
+    // Disable toggles (add disabled + opacity)
+    for (const cb of checkboxes) {
+      if (!cb) continue;
+      cb.disabled = true;
+      cb.checked = true; // Show as "on" but disabled
+      const label = cb.closest("label");
+      if (label) label.classList.add("opacity-50");
+    }
   }
 }
 
@@ -205,9 +233,16 @@ function wireEvents(): void {
   }
 
   // Push notification checkbox changes
+  // Toggling a prayer calls enableNotifications() with updated prefs.
+  // The Worker receives a fresh subscribe with the same endpoint
+  // and updated notify_* flags (INSERT OR REPLACE in D1).
   document.querySelectorAll<HTMLInputElement>('input[name^="notify-"]').forEach((input) => {
-    input.addEventListener("change", () => {
-      updatePreferences(getPushPrefs());
+    input.addEventListener("change", async () => {
+      try {
+        await enableNotifications(getPushPrefs());
+      } catch (err) {
+        console.error("[push] toggle failed", err);
+      }
     });
   });
 

@@ -213,6 +213,38 @@ describe("updatePreferences", () => {
   });
 });
 
+describe("enableNotifications (idempotent re-subscribe)", () => {
+  afterEach(() => {
+    mockRequestPermission.mockReset();
+    mockSubscribe.mockReset();
+    mockFetch.mockReset();
+    localStorage.clear();
+  });
+
+  it("can be called multiple times to update prefs (e.g., from checkbox toggle)", async () => {
+    mockRequestPermission.mockResolvedValue("granted");
+    // PushManager.subscribe() returns the existing subscription if one exists
+    mockSubscribe.mockResolvedValue({
+      toJSON: () => FAKE_SUBSCRIPTION_JSON,
+    });
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+
+    // First call — user clicks "Enable Notifications"
+    await enableNotifications(PREFS);
+
+    // Second call — user toggles off Asr
+    const updatedPrefs: PushPrefs = { ...PREFS, asr: false };
+    await enableNotifications(updatedPrefs);
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    // The second call should include the updated prefs (asr: false)
+    const secondCallBody = JSON.parse(mockFetch.mock.calls[1][1].body);
+    expect(secondCallBody.prefs).toEqual(updatedPrefs);
+    expect(secondCallBody.prefs.asr).toBe(false);
+  });
+});
+
 describe("getPushSubscription", () => {
   afterEach(() => {
     mockGetSubscription.mockReset();
