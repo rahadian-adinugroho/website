@@ -3,14 +3,15 @@
   <title>Islam</title>
   <!-- Outer ring -->
   <circle cx="32" cy="32" r="28" fill="none" stroke="#16a34a" stroke-width="3"/>
-  <!-- Crescent: large disc on the left minus a smaller disc to the right
-       gives a thick moon with horns at top-right and bottom-right. -->
+  <!-- Crescent: large disc on the left minus a smaller disc to the right.
+       Main r=18 minus mask r=14 with offset 12 gives a thick moon
+       with sharp horns at top-right and bottom-right. -->
   <mask id="crescent">
     <rect width="64" height="64" fill="white"/>
-    <circle cx="32" cy="32" r="12" fill="black"/>
+    <circle cx="36" cy="32" r="14" fill="black"/>
   </mask>
-  <circle cx="22" cy="32" r="15" fill="#16a34a" mask="url(#crescent)"/>
+  <circle cx="24" cy="32" r="18" fill="#16a34a" mask="url(#crescent)"/>
   <!-- 5-pointed star — leftmost point overlaps the crescent's inner edge.
-       Center (32, 28), R=7, r=2.8. -->
-  <polygon points="32,21 33.7,25.7 38.7,25.8 34.7,28.9 36.1,33.7 32,30.8 27.9,33.7 29.3,28.9 25.3,25.8 30.3,25.7" fill="#16a34a"/>
+       Center (34, 28), R=8, r=3.2 — sized to match the source. -->
+  <polygon points="34,20 35.9,25.4 41.6,25.5 37,29 38.7,34.5 34,31.2 29.3,34.5 31,29 26.4,25.5 32.1,25.4" fill="#16a34a"/>
 </svg>
