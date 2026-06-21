@@ -201,10 +201,14 @@ function wireEvents(): void {
       // If user is subscribed to push, re-subscribe with the new locale
       // so future notifications use the new language. enableNotifications()
       // is idempotent — it upserts the subscription on the Worker.
+      // Also refresh the notification UI to keep the enable/disable
+      // button label and data-enabled attribute in sync (otherwise
+      // the button text stays at the old locale's translation).
       const sub = await getPushSubscription();
       if (sub) {
         try {
           await enableNotifications(getPushPrefs());
+          await refreshNotificationUI();
         } catch (err) {
           console.warn("[push] failed to update locale on Worker", err);
         }
@@ -248,10 +252,13 @@ function wireEvents(): void {
   // Toggling a prayer calls enableNotifications() with updated prefs.
   // The Worker receives a fresh subscribe with the same endpoint
   // and updated notify_* flags (INSERT OR REPLACE in D1).
+  // Also refresh the notification UI so the button label stays in sync
+  // with the current locale (e.g. "Enable"/"Disable" vs "Aktifkan"/"Nonaktifkan").
   document.querySelectorAll<HTMLInputElement>('input[name^="notify-"]').forEach((input) => {
     input.addEventListener("change", async () => {
       try {
         await enableNotifications(getPushPrefs());
+        await refreshNotificationUI();
       } catch (err) {
         console.error("[push] toggle failed", err);
       }
