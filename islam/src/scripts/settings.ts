@@ -188,7 +188,7 @@ function wireEvents(): void {
   // Language select
   const langSelect = document.querySelector<HTMLSelectElement>('select[name="settings-lang"]');
   if (langSelect) {
-    langSelect.addEventListener("change", () => {
+    langSelect.addEventListener("change", async () => {
       const value = langSelect.value;
       if (value === "auto") {
         localStorage.removeItem("islam:lang");
@@ -196,6 +196,18 @@ function wireEvents(): void {
         setLocale(detected);
       } else {
         setLocale(value as Locale);
+      }
+
+      // If user is subscribed to push, re-subscribe with the new locale
+      // so future notifications use the new language. enableNotifications()
+      // is idempotent — it upserts the subscription on the Worker.
+      const sub = await getPushSubscription();
+      if (sub) {
+        try {
+          await enableNotifications(getPushPrefs());
+        } catch (err) {
+          console.warn("[push] failed to update locale on Worker", err);
+        }
       }
     });
   }

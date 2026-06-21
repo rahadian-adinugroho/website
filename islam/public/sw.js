@@ -1,4 +1,5 @@
 // Push event handler — shows notification when Worker sends a push
+// data shape: { title, body, icon, tag, data: { prayer } }
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   const data = event.data.json();
@@ -7,7 +8,7 @@ self.addEventListener("push", (event) => {
       body: data.body,
       icon: data.icon || "/icon.png",
       badge: data.icon || "/icon.png",
-      tag: data.prayer,
+      tag: data.tag, // e.g. "prayer-fajr" — used to coalesce repeated notifications
       requireInteraction: false,
     })
   );
