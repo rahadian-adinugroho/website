@@ -11,6 +11,7 @@
   "location.errorDeniedIos": "Location access denied. To fix this on iOS: 1. Settings → Privacy & Security → Location Services → Enable Location Services 2. Scroll down to Safari → select 'While Using App' 3. Reload this page",
   "location.errorUnavailable": "Location unavailable. Please check your internet connection and GPS settings.",
   "location.errorTimeout": "Request timed out. Please try again.",
+  "location.cachedWarning": "Using your last known location. Prayer times and Qibla direction may be inaccurate if you've moved since your last visit.",
   "prayer.heading": "Prayer Times",
   "prayer.fajr": "Fajr",
   "prayer.sunrise": "Sunrise",

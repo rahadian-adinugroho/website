@@ -6,7 +6,7 @@ import {
   requestCompassPermission,
 } from "./qibla";
 import { loadSettings } from "../lib/settings";
-import { setUserLocation, getUserLocation, loadCachedLocation } from "../lib/location";
+import { setUserLocation, getUserLocation, loadCachedLocation, isLocationFromCache } from "../lib/location";
 import { initSettings, openSettings, closeSettings } from "./settings";
 
 const requestBtn = document.getElementById("request-location-btn");
@@ -102,9 +102,11 @@ function handleLocationSuccess(position: GeolocationPosition) {
   userLng = longitude;
 
   // Make location available to other modules (e.g., settings panel)
-  setUserLocation(latitude, longitude);
+  setUserLocation(latitude, longitude, false);
   // Refresh the "Using: X" label in the settings panel (if open)
   window.dispatchEvent(new CustomEvent("location:updated"));
+  // Notify the disclaimer banner (hides it since location is fresh)
+  window.dispatchEvent(new CustomEvent("location:source-changed"));
 
   // Hide all request/error UI
   if (locationRequest) locationRequest.hidden = true;
@@ -170,6 +172,13 @@ window.addEventListener("settings:changed", ((e: CustomEvent) => {
   }
 }) as EventListener);
 
+// Show/hide the cached-location disclaimer banner
+window.addEventListener("location:source-changed", () => {
+  const el = document.getElementById("location-disclaimer");
+  if (!el) return;
+  el.classList.toggle("hidden", !isLocationFromCache());
+});
+
 // Wire tab buttons
 document.getElementById("tab-btn-prayer-times")?.addEventListener("click", () => {
   switchTab("prayer-times");
@@ -186,6 +195,9 @@ if (loadCachedLocation()) {
     userLat = loc.lat;
     userLng = loc.lng;
 
+    // Mark location as from cache so the disclaimer banner is shown
+    setUserLocation(loc.lat, loc.lng, true);
+
     // Show next-prayer card
     const nextPrayerCard = document.getElementById("next-prayer-card");
     if (nextPrayerCard) nextPrayerCard.hidden = false;
@@ -196,6 +208,8 @@ if (loadCachedLocation()) {
 
     // Notify the settings panel so the "Using: X" label updates
     window.dispatchEvent(new CustomEvent("location:updated"));
+    // Show disclaimer banner since location is from cache
+    window.dispatchEvent(new CustomEvent("location:source-changed"));
   }
 }
 

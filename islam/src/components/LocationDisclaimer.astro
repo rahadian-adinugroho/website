@@ -1,0 +1,12 @@
+---
+// Warning banner shown when location is from cache (stale GPS data).
+// Hidden by default; shown/hidden by app.ts via `location:source-changed`.
+---
+<div
+  id="location-disclaimer"
+  class="hidden mx-4 mt-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-200"
+  role="status"
+  data-i18n="location.cachedWarning"
+>
+  Using your last known location. Prayer times and Qibla direction may be inaccurate if you've moved since your last visit.
+</div>

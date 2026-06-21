@@ -4,6 +4,7 @@ import {
   getUserLocation,
   clearUserLocation,
   loadCachedLocation,
+  isLocationFromCache,
 } from "./location";
 
 describe("location", () => {
@@ -137,6 +138,47 @@ describe("location", () => {
       );
       loadCachedLocation();
       expect(getUserLocation()).toEqual({ lat: -6.2, lng: 106.8 });
+    });
+  });
+
+  describe("isLocationFromCache", () => {
+    it("returns false initially", () => {
+      expect(isLocationFromCache()).toBe(false);
+    });
+
+    it("returns true after loadCachedLocation succeeds", () => {
+      localStorage.setItem(
+        "islam:location",
+        JSON.stringify({ lat: -6.2, lng: 106.8, timestamp: Date.now() }),
+      );
+      loadCachedLocation();
+      expect(isLocationFromCache()).toBe(true);
+    });
+
+    it("returns false after setUserLocation(lat, lng, false) (fresh GPS)", () => {
+      // First set from cache
+      localStorage.setItem(
+        "islam:location",
+        JSON.stringify({ lat: -6.2, lng: 106.8, timestamp: Date.now() }),
+      );
+      loadCachedLocation();
+      expect(isLocationFromCache()).toBe(true);
+
+      // Now fresh GPS arrives
+      setUserLocation(40.7, -74.0, false);
+      expect(isLocationFromCache()).toBe(false);
+    });
+
+    it("returns true after setUserLocation(lat, lng, true) (explicit fromCache)", () => {
+      setUserLocation(-6.2, 106.8, true);
+      expect(isLocationFromCache()).toBe(true);
+    });
+
+    it("returns false after clearUserLocation", () => {
+      setUserLocation(-6.2, 106.8, true);
+      expect(isLocationFromCache()).toBe(true);
+      clearUserLocation();
+      expect(isLocationFromCache()).toBe(false);
     });
   });
 });

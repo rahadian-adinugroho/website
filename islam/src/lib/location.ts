@@ -2,10 +2,12 @@ const STORAGE_KEY = "islam:location";
 
 let userLat: number | null = null;
 let userLng: number | null = null;
+let _isFromCache: boolean = false;
 
-export function setUserLocation(lat: number, lng: number): void {
+export function setUserLocation(lat: number, lng: number, fromCache: boolean = false): void {
   userLat = lat;
   userLng = lng;
+  _isFromCache = fromCache;
   persistToLocalStorage(lat, lng);
 }
 
@@ -28,9 +30,14 @@ export function getUserLocation(): { lat: number; lng: number } | null {
   return null;
 }
 
+export function isLocationFromCache(): boolean {
+  return _isFromCache;
+}
+
 export function clearUserLocation(): void {
   userLat = null;
   userLng = null;
+  _isFromCache = false;
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.removeItem(STORAGE_KEY);
@@ -56,6 +63,7 @@ export function loadCachedLocation(): boolean {
 
     userLat = data.lat;
     userLng = data.lng;
+    _isFromCache = true;
     return true;
   } catch {
     return false;
