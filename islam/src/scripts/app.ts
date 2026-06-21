@@ -24,6 +24,11 @@ console.log("[islam] init, isIOS:", isIOS);
 // Initialize i18n first
 initI18n();
 
+// Register service worker for push notifications
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(console.error);
+}
+
 // Tab state
 let activeTab: "prayer-times" | "qibla" = "prayer-times";
 let userLat: number | null = null;
