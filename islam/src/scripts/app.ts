@@ -143,6 +143,10 @@ function handleLocationSuccess(position: GeolocationPosition) {
   // so push notifications use the current position and calculation method.
   getPushSubscription().then((sub) => {
     if (sub && (hasLocationDrift(latitude, longitude) || isLocationStale())) {
+      const drift = hasLocationDrift(latitude, longitude);
+      const stale = isLocationStale();
+      console.log(`[push] periodic sync triggered: drift=${drift} stale=${stale} lat=${latitude.toFixed(4)} lng=${longitude.toFixed(4)}`);
+
       // Read current prefs from localStorage (defaults to all-on if missing)
       let prefs: PushPrefs = { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true };
       try {
