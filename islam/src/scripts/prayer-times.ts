@@ -217,6 +217,12 @@ function startCountdown(): void {
 }
 
 function updateCountdown(): void {
+  // Re-evaluate highlighting every second so the highlight follows
+  // the current time as prayer windows change (e.g. when Fajr starts,
+  // Fajr becomes the highlighted "current" prayer).
+  const allPrayers = getAllPrayerTimes();
+  highlightPrayers(allPrayers.filter((p) => !p.isSunnah));
+
   const next = getNextPrayer();
   const nameEl = document.getElementById("next-prayer-name");
   const countdownEl = document.getElementById("next-prayer-countdown");
@@ -265,11 +271,21 @@ function updateCountdown(): void {
   }
 }
 
-function highlightPrayers(
-  prayers: { id: string; label: string; time: Date }[],
-): void {
-  const now = new Date();
-
+/**
+ * Pure helper: given a sorted list of prayers and the current time,
+ * returns the indices of the current prayer (the one whose window we're in)
+ * and the next prayer (the next one coming up).
+ *
+ * - "current" = the last prayer whose time <= now (i.e. the window we're in)
+ * - "next"   = the first prayer whose time > now (strictly in the future)
+ *
+ * Returns { currentIndex, nextIndex } where -1 means not found.
+ * Exported for testing.
+ */
+export function getCurrentAndNextPrayerIdx(
+  prayers: { time: Date }[],
+  now: Date,
+): { currentIndex: number; nextIndex: number } {
   let currentIndex = -1;
   for (let i = prayers.length - 1; i >= 0; i--) {
     if (prayers[i].time <= now) {
@@ -285,6 +301,15 @@ function highlightPrayers(
       break;
     }
   }
+
+  return { currentIndex, nextIndex };
+}
+
+function highlightPrayers(
+  prayers: { id: string; label: string; time: Date }[],
+): void {
+  const now = new Date();
+  const { currentIndex, nextIndex } = getCurrentAndNextPrayerIdx(prayers, now);
 
   for (let i = 0; i < prayers.length; i++) {
     const row = document.getElementById(`prayer-row-${prayers[i].id}`);
