@@ -236,16 +236,7 @@ function updateCountdown(): void {
       const tomorrowFajr = new Date(
         prayerTimesDisplay.fajr.getTime() + 24 * 60 * 60 * 1000,
       );
-      const diff = tomorrowFajr.getTime() - Date.now();
-      if (diff > 0) {
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        countdownEl.textContent =
-          `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-      } else {
-        countdownEl.textContent = "--:--:--";
-      }
+      countdownEl.textContent = formatCountdown(tomorrowFajr, new Date());
     } else if (countdownEl) {
       countdownEl.textContent = "--:--:--";
     }
@@ -255,19 +246,8 @@ function updateCountdown(): void {
   if (nameEl) nameEl.textContent = next.label;
 
   const diff = next.time.getTime() - Date.now();
-
-  if (diff <= 0) {
-    if (countdownEl) countdownEl.textContent = "00:00:00";
-    return;
-  }
-
-  const hours = Math.floor(diff / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-
   if (countdownEl) {
-    countdownEl.textContent =
-      `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    countdownEl.textContent = formatCountdown(next.time, new Date());
   }
 }
 
@@ -396,6 +376,20 @@ function renderHijriDate(date: Date): void {
     const monthName = months[hm - 1] || "";
     hijriEl.textContent = `${hd} ${monthName} ${hy} AH`;
   }
+}
+
+/**
+ * Format a countdown string from a target time.
+ * Returns "HH:MM:SS" if target is in the future, "00:00:00" otherwise.
+ * Exported for testing.
+ */
+export function formatCountdown(targetTime: Date, now: Date): string {
+  const diff = targetTime.getTime() - now.getTime();
+  if (diff <= 0) return "00:00:00";
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function showPrayerTimes(): void {

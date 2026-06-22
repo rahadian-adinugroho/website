@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getCurrentAndNextPrayerIdx } from "./prayer-times";
+import { getCurrentAndNextPrayerIdx, formatCountdown } from "./prayer-times";
 
 /**
  * Helper: create a prayer entry with only the fields needed for index lookup.
@@ -105,5 +105,57 @@ describe("getCurrentAndNextPrayerIdx", () => {
     const { currentIndex, nextIndex } = getCurrentAndNextPrayerIdx(prayers, t("13:00"));
     expect(currentIndex).toBe(0);
     expect(nextIndex).toBe(-1);
+  });
+
+  it("transitions next index at the exact prayer time (auto-transition)", () => {
+    const prayers = PRAYER_TIMES.map(p);
+    // At 04:29, next is Fajr (index 0)
+    expect(getCurrentAndNextPrayerIdx(prayers, t("04:29")).nextIndex).toBe(0);
+    // At 04:30 exactly, Fajr is now current, next becomes Sunrise (index 1)
+    const { currentIndex, nextIndex } = getCurrentAndNextPrayerIdx(prayers, t("04:30"));
+    expect(currentIndex).toBe(0);  // Fajr is current
+    expect(nextIndex).toBe(1);     // Sunrise is next — auto-transitioned
+  });
+
+  it("transitions through all prayers in sequence", () => {
+    const prayers = PRAYER_TIMES.map(p);
+    // One second before each prayer, next points to it
+    expect(getCurrentAndNextPrayerIdx(prayers, t("04:29")).nextIndex).toBe(0);  // Fajr
+    expect(getCurrentAndNextPrayerIdx(prayers, t("05:44")).nextIndex).toBe(1);  // Sunrise
+    expect(getCurrentAndNextPrayerIdx(prayers, t("11:59")).nextIndex).toBe(2);  // Dhuhr
+    expect(getCurrentAndNextPrayerIdx(prayers, t("15:14")).nextIndex).toBe(3);  // Asr
+    expect(getCurrentAndNextPrayerIdx(prayers, t("17:44")).nextIndex).toBe(4);  // Maghrib
+    expect(getCurrentAndNextPrayerIdx(prayers, t("18:59")).nextIndex).toBe(5);  // Isha
+    // At or after Isha, next is -1
+    expect(getCurrentAndNextPrayerIdx(prayers, t("19:00")).nextIndex).toBe(-1);
+    expect(getCurrentAndNextPrayerIdx(prayers, t("22:00")).nextIndex).toBe(-1);
+  });
+});
+
+describe("formatCountdown", () => {
+  const base = new Date("2025-01-01T12:00:00Z");
+
+  it("returns HH:MM:SS when target is in the future", () => {
+    const target = new Date(base.getTime() + 3661 * 1000); // 1h 1m 1s
+    expect(formatCountdown(target, base)).toBe("01:01:01");
+  });
+
+  it("returns 00:00:00 when target is exactly now", () => {
+    expect(formatCountdown(base, base)).toBe("00:00:00");
+  });
+
+  it("returns 00:00:00 when target is in the past", () => {
+    const target = new Date(base.getTime() - 1000);
+    expect(formatCountdown(target, base)).toBe("00:00:00");
+  });
+
+  it("pads single-digit hours, minutes, seconds", () => {
+    const target = new Date(base.getTime() + 5 * 1000); // 5 seconds
+    expect(formatCountdown(target, base)).toBe("00:00:05");
+  });
+
+  it("handles large durations (many hours)", () => {
+    const target = new Date(base.getTime() + 25 * 3600 * 1000); // 25 hours
+    expect(formatCountdown(target, base)).toBe("25:00:00");
   });
 });
