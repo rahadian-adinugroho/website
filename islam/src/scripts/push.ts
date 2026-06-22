@@ -62,10 +62,33 @@ export async function enableNotifications(prefs: PushPrefs): Promise<void> {
   const registration = await navigator.serviceWorker.ready;
 
   // Subscribe
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-  });
+  let subscription: PushSubscription;
+  try {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+  } catch (err) {
+    if (err instanceof DOMException) {
+      if (err.name === "AbortError") {
+        console.error(
+          "[push] Push service rejected the subscription. This can happen if:\n" +
+          "  1. The browser's push service is blocked (firewall, VPN, network policy)\n" +
+          "  2. The VAPID public key is invalid or not accepted by the push service\n" +
+          "  3. The browser has push disabled (check browser settings, not just permission)\n" +
+          "  4. A browser extension is interfering with Web Push\n" +
+          "Try: reloading the page, checking your network, or trying a different browser."
+        );
+      } else if (err.name === "NotAllowedError") {
+        console.error("[push] Notification permission was denied. The user must grant notification permission for the site.");
+      } else {
+        console.error(`[push] Subscription failed: ${err.name} — ${err.message}`);
+      }
+    } else {
+      console.error("[push] Subscription failed with non-DOM error:", err);
+    }
+    throw err; // Re-throw so the caller knows it failed
+  }
 
   // Send to worker
   const sub = subscription.toJSON();

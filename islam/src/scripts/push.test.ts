@@ -169,6 +169,42 @@ describe("enableNotifications", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("re-throws AbortError from pushManager.subscribe after logging", async () => {
+    mockRequestPermission.mockResolvedValue("granted");
+    const abortError = new DOMException("Registration failed - push service error", "AbortError");
+    mockSubscribe.mockRejectedValue(abortError);
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(enableNotifications(PREFS)).rejects.toThrow(abortError);
+    expect(consoleSpy).toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("re-throws NotAllowedError from pushManager.subscribe after logging", async () => {
+    mockRequestPermission.mockResolvedValue("granted");
+    const notAllowedError = new DOMException("Permission denied", "NotAllowedError");
+    mockSubscribe.mockRejectedValue(notAllowedError);
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(enableNotifications(PREFS)).rejects.toThrow(notAllowedError);
+    expect(consoleSpy).toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("re-throws generic error from pushManager.subscribe after logging", async () => {
+    mockRequestPermission.mockResolvedValue("granted");
+    const genericError = new Error("Something went wrong");
+    mockSubscribe.mockRejectedValue(genericError);
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(enableNotifications(PREFS)).rejects.toThrow(genericError);
+    expect(consoleSpy).toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
   it("sends locale:'en' in the body by default", async () => {
     setLocale("en");
     mockRequestPermission.mockResolvedValue("granted");

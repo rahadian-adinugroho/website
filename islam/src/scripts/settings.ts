@@ -239,10 +239,13 @@ function wireEvents(): void {
 
   // Push notification enable/disable button
   const enableBtn = $("enable-notifications-btn");
+  const errorEl = $("enable-notifications-error");
   if (enableBtn) {
     enableBtn.addEventListener("click", async () => {
       const isEnabled = enableBtn.dataset.enabled === "true";
       const prefs = getPushPrefs();
+      // Clear previous error
+      if (errorEl) errorEl.hidden = true;
       try {
         if (isEnabled) {
           // Currently subscribed — disable
@@ -255,6 +258,13 @@ function wireEvents(): void {
         await refreshNotificationUI();
       } catch (err) {
         console.error("[push] toggle failed", err);
+        if (errorEl) {
+          const isAbortError = err instanceof DOMException && err.name === "AbortError";
+          errorEl.textContent = isAbortError
+            ? t("settings.pushErrorAbort")
+            : t("settings.pushErrorGeneric");
+          errorEl.hidden = false;
+        }
       }
     });
   }
@@ -267,11 +277,19 @@ function wireEvents(): void {
   // with the current locale (e.g. "Enable"/"Disable" vs "Aktifkan"/"Nonaktifkan").
   document.querySelectorAll<HTMLInputElement>('input[name^="notify-"]').forEach((input) => {
     input.addEventListener("change", async () => {
+      if (errorEl) errorEl.hidden = true;
       try {
         await enableNotifications(getPushPrefs());
         await refreshNotificationUI();
       } catch (err) {
         console.error("[push] toggle failed", err);
+        if (errorEl) {
+          const isAbortError = err instanceof DOMException && err.name === "AbortError";
+          errorEl.textContent = isAbortError
+            ? t("settings.pushErrorAbort")
+            : t("settings.pushErrorGeneric");
+          errorEl.hidden = false;
+        }
       }
     });
   });
