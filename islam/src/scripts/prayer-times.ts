@@ -217,6 +217,12 @@ function startCountdown(): void {
 }
 
 function updateCountdown(): void {
+  // Re-evaluate highlighting every second so the highlight follows
+  // the current time as prayer windows change (e.g. when Fajr starts,
+  // Fajr becomes the highlighted "current" prayer).
+  const allPrayers = getAllPrayerTimes();
+  highlightPrayers(allPrayers.filter((p) => !p.isSunnah));
+
   const next = getNextPrayer();
   const nameEl = document.getElementById("next-prayer-name");
   const countdownEl = document.getElementById("next-prayer-countdown");
@@ -230,16 +236,7 @@ function updateCountdown(): void {
       const tomorrowFajr = new Date(
         prayerTimesDisplay.fajr.getTime() + 24 * 60 * 60 * 1000,
       );
-      const diff = tomorrowFajr.getTime() - Date.now();
-      if (diff > 0) {
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        countdownEl.textContent =
-          `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-      } else {
-        countdownEl.textContent = "--:--:--";
-      }
+      countdownEl.textContent = formatCountdown(tomorrowFajr, new Date());
     } else if (countdownEl) {
       countdownEl.textContent = "--:--:--";
     }
@@ -249,27 +246,26 @@ function updateCountdown(): void {
   if (nameEl) nameEl.textContent = next.label;
 
   const diff = next.time.getTime() - Date.now();
-
-  if (diff <= 0) {
-    if (countdownEl) countdownEl.textContent = "00:00:00";
-    return;
-  }
-
-  const hours = Math.floor(diff / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-
   if (countdownEl) {
-    countdownEl.textContent =
-      `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    countdownEl.textContent = formatCountdown(next.time, new Date());
   }
 }
 
-function highlightPrayers(
-  prayers: { id: string; label: string; time: Date }[],
-): void {
-  const now = new Date();
-
+/**
+ * Pure helper: given a sorted list of prayers and the current time,
+ * returns the indices of the current prayer (the one whose window we're in)
+ * and the next prayer (the next one coming up).
+ *
+ * - "current" = the last prayer whose time <= now (i.e. the window we're in)
+ * - "next"   = the first prayer whose time > now (strictly in the future)
+ *
+ * Returns { currentIndex, nextIndex } where -1 means not found.
+ * Exported for testing.
+ */
+export function getCurrentAndNextPrayerIdx(
+  prayers: { time: Date }[],
+  now: Date,
+): { currentIndex: number; nextIndex: number } {
   let currentIndex = -1;
   for (let i = prayers.length - 1; i >= 0; i--) {
     if (prayers[i].time <= now) {
@@ -285,6 +281,15 @@ function highlightPrayers(
       break;
     }
   }
+
+  return { currentIndex, nextIndex };
+}
+
+function highlightPrayers(
+  prayers: { id: string; label: string; time: Date }[],
+): void {
+  const now = new Date();
+  const { currentIndex, nextIndex } = getCurrentAndNextPrayerIdx(prayers, now);
 
   for (let i = 0; i < prayers.length; i++) {
     const row = document.getElementById(`prayer-row-${prayers[i].id}`);
@@ -371,6 +376,20 @@ function renderHijriDate(date: Date): void {
     const monthName = months[hm - 1] || "";
     hijriEl.textContent = `${hd} ${monthName} ${hy} AH`;
   }
+}
+
+/**
+ * Format a countdown string from a target time.
+ * Returns "HH:MM:SS" if target is in the future, "00:00:00" otherwise.
+ * Exported for testing.
+ */
+export function formatCountdown(targetTime: Date, now: Date): string {
+  const diff = targetTime.getTime() - now.getTime();
+  if (diff <= 0) return "00:00:00";
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function showPrayerTimes(): void {

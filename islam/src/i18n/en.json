@@ -44,6 +44,7 @@
   "settings.calcMethod.turkey": "Turkey (Diyanet)",
   "settings.notifications": "Notifications",
   "settings.enableNotifications": "Enable Notifications",
+  "settings.notificationPrefsHint": "Enable notifications to choose which prayers.",
   "settings.pushErrorAbort": "Could not enable notifications. Your browser's push service rejected the request. Try reloading the page or checking your browser's notification settings.",
   "settings.pushErrorGeneric": "Could not enable notifications. Check the browser console for details.",
   "settings.disableNotifications": "Disable Notifications",

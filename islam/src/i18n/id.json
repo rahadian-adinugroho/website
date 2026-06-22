@@ -44,6 +44,7 @@
   "settings.calcMethod.turkey": "Turki (Diyanet)",
   "settings.notifications": "Notifikasi",
   "settings.enableNotifications": "Aktifkan Notifikasi",
+  "settings.notificationPrefsHint": "Aktifkan notifikasi untuk memilih waktu sholat.",
   "settings.pushErrorAbort": "Tidak dapat mengaktifkan notifikasi. Layanan push browser menolak permintaan. Coba muat ulang halaman atau periksa pengaturan notifikasi browser Anda.",
   "settings.pushErrorGeneric": "Tidak dapat mengaktifkan notifikasi. Periksa konsol browser untuk detail.",
   "settings.disableNotifications": "Nonaktifkan Notifikasi",
