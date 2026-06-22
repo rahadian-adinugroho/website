@@ -5,6 +5,9 @@ import {
   clearUserLocation,
   loadCachedLocation,
   isLocationFromCache,
+  hasLocationDrift,
+  isLocationStale,
+  markServerSynced,
 } from "./location";
 
 describe("location", () => {
@@ -179,6 +182,82 @@ describe("location", () => {
       expect(isLocationFromCache()).toBe(true);
       clearUserLocation();
       expect(isLocationFromCache()).toBe(false);
+    });
+  });
+
+  describe("hasLocationDrift", () => {
+    it("returns true when no position is set", () => {
+      expect(hasLocationDrift(-6.2, 106.8)).toBe(true);
+    });
+
+    it("returns false when position is within threshold", () => {
+      setUserLocation(-6.2, 106.8);
+      // ~5 km south — within 0.1 degree threshold
+      expect(hasLocationDrift(-6.15, 106.8)).toBe(false);
+      // ~5 km east
+      expect(hasLocationDrift(-6.2, 106.85)).toBe(false);
+    });
+
+    it("returns true when lat drifts beyond threshold", () => {
+      setUserLocation(-6.2, 106.8);
+      // ~15 km south — beyond 0.1 degree
+      expect(hasLocationDrift(-6.35, 106.8)).toBe(true);
+    });
+
+    it("returns true when lng drifts beyond threshold", () => {
+      setUserLocation(-6.2, 106.8);
+      // ~15 km east
+      expect(hasLocationDrift(-6.2, 106.95)).toBe(true);
+    });
+  });
+
+  describe("isLocationStale", () => {
+    it("returns false when no cached data", () => {
+      expect(isLocationStale()).toBe(false);
+    });
+
+    it("returns false when lastServerSync is recent", () => {
+      localStorage.setItem(
+        "islam:location",
+        JSON.stringify({ lat: -6.2, lng: 106.8, timestamp: Date.now(), lastServerSync: Date.now() }),
+      );
+      expect(isLocationStale()).toBe(false);
+    });
+
+    it("returns true when lastServerSync is older than 24h", () => {
+      const old = Date.now() - 25 * 60 * 60 * 1000; // 25h ago
+      localStorage.setItem(
+        "islam:location",
+        JSON.stringify({ lat: -6.2, lng: 106.8, timestamp: old, lastServerSync: old }),
+      );
+      expect(isLocationStale()).toBe(true);
+    });
+
+    it("returns true when lastServerSync is missing (defaults to 0)", () => {
+      localStorage.setItem(
+        "islam:location",
+        JSON.stringify({ lat: -6.2, lng: 106.8, timestamp: Date.now() }),
+      );
+      expect(isLocationStale()).toBe(true);
+    });
+  });
+
+  describe("markServerSynced", () => {
+    it("updates lastServerSync in localStorage", () => {
+      const before = Date.now();
+      localStorage.setItem(
+        "islam:location",
+        JSON.stringify({ lat: -6.2, lng: 106.8, timestamp: before, lastServerSync: 0 }),
+      );
+      markServerSynced();
+      const raw = localStorage.getItem("islam:location");
+      expect(raw).not.toBeNull();
+      const data = JSON.parse(raw!);
+      expect(data.lastServerSync).toBeGreaterThanOrEqual(before);
+    });
+
+    it("does nothing when no cached data", () => {
+      expect(() => markServerSynced()).not.toThrow();
     });
   });
 });

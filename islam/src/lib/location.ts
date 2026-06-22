@@ -1,4 +1,6 @@
 const STORAGE_KEY = "islam:location";
+const DRIFT_THRESHOLD_DEGREES = 0.1;  // ~11 km
+const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;  // 24 hours
 
 let userLat: number | null = null;
 let userLng: number | null = null;
@@ -14,9 +16,18 @@ export function setUserLocation(lat: number, lng: number, fromCache: boolean = f
 function persistToLocalStorage(lat: number, lng: number): void {
   if (typeof localStorage === "undefined") return;
   try {
+    // Preserve lastServerSync from existing cache so it isn't lost on GPS update
+    let lastServerSync = 0;
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing) {
+      const parsed = JSON.parse(existing);
+      if (parsed.lastServerSync && typeof parsed.lastServerSync === "number") {
+        lastServerSync = parsed.lastServerSync;
+      }
+    }
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ lat, lng, timestamp: Date.now() }),
+      JSON.stringify({ lat, lng, timestamp: Date.now(), lastServerSync }),
     );
   } catch {
     // Quota exceeded or other storage error — fail silently
@@ -67,5 +78,48 @@ export function loadCachedLocation(): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Returns true if the new position differs from the in-memory position
+ * by more than the drift threshold (~11 km), or if no position is set.
+ */
+export function hasLocationDrift(newLat: number, newLng: number): boolean {
+  if (userLat === null || userLng === null) return true;
+  return (
+    Math.abs(newLat - userLat) > DRIFT_THRESHOLD_DEGREES ||
+    Math.abs(newLng - userLng) > DRIFT_THRESHOLD_DEGREES
+  );
+}
+
+/**
+ * Returns true if the last server sync was more than 24 hours ago.
+ */
+export function isLocationStale(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const cached = JSON.parse(raw);
+    return Date.now() - (cached.lastServerSync ?? 0) > STALE_THRESHOLD_MS;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Update lastServerSync to now, persist to localStorage.
+ */
+export function markServerSynced(): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const cached = JSON.parse(raw);
+    cached.lastServerSync = Date.now();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cached));
+  } catch {
+    // Ignore errors
   }
 }

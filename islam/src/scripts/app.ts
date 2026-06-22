@@ -6,8 +6,10 @@ import {
   requestCompassPermission,
 } from "./qibla";
 import { loadSettings } from "../lib/settings";
-import { setUserLocation, getUserLocation, loadCachedLocation, isLocationFromCache } from "../lib/location";
+import { setUserLocation, getUserLocation, loadCachedLocation, isLocationFromCache, hasLocationDrift, isLocationStale } from "../lib/location";
 import { initSettings, openSettings, closeSettings } from "./settings";
+import { syncServerState, getPushSubscription } from "./push";
+import type { PushPrefs } from "./push";
 
 const requestBtn = document.getElementById("request-location-btn");
 const retryBtn = document.getElementById("retry-location-btn");
@@ -136,6 +138,22 @@ function handleLocationSuccess(position: GeolocationPosition) {
       compassBtn.hidden = true;
     });
   }
+
+  // Periodic refresh: if location drifted or stale, sync state to Worker
+  // so push notifications use the current position and calculation method.
+  getPushSubscription().then((sub) => {
+    if (sub && (hasLocationDrift(latitude, longitude) || isLocationStale())) {
+      // Read current prefs from localStorage (defaults to all-on if missing)
+      let prefs: PushPrefs = { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true };
+      try {
+        const saved = localStorage.getItem("islam:push:prefs");
+        if (saved) prefs = JSON.parse(saved);
+      } catch { /* use defaults */ }
+      syncServerState(prefs).catch((err) =>
+        console.warn("[push] periodic sync failed", err),
+      );
+    }
+  });
 }
 
 // --- Init ---

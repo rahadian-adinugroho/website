@@ -1,5 +1,6 @@
-import { getUserLocation } from "../lib/location";
+import { getUserLocation, markServerSynced } from "../lib/location";
 import { getLocale } from "../i18n/i18n";
+import { loadSettings, resolveMethod } from "../lib/settings";
 
 const VAPID_PUBLIC_KEY = "BO52m2RzNMPmB1E8ZeShL6uDgtx8qjSHjwkW7nt5AP2kqPUhilePDf_Vki89XUB3nqQ63jv7qBYaLqkgcDWi-DY";
 const WORKER_URL = "https://islam-push.raharoho.me";
@@ -19,6 +20,31 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from(rawData.split("").map((c) => c.charCodeAt(0)));
 }
 
+/** Build the request body shared by subscribe/preferences/sync calls. */
+function buildBody(
+  sub: { endpoint: string; keys?: { p256dh: string; auth: string } },
+  prefs: PushPrefs,
+): Record<string, unknown> {
+  const loc = getUserLocation();
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const settings = loadSettings();
+  const calcMethod = resolveMethod(settings, loc?.lat, loc?.lng);
+
+  const body: Record<string, unknown> = {
+    endpoint: sub.endpoint,
+    keys: sub.keys,
+    timezone,
+    prefs,
+    locale: getLocale(),
+    calcMethod,
+  };
+  if (loc) {
+    body.lat = loc.lat;
+    body.lng = loc.lng;
+  }
+  return body;
+}
+
 export async function enableNotifications(prefs: PushPrefs): Promise<void> {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
     console.warn("[push] Push notifications not supported");
@@ -36,28 +62,37 @@ export async function enableNotifications(prefs: PushPrefs): Promise<void> {
   const registration = await navigator.serviceWorker.ready;
 
   // Subscribe
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-  });
-
-  // Get user location and timezone
-  const loc = getUserLocation();
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  // Send to worker — Worker expects flat fields (endpoint, keys at top level)
-  const sub = subscription.toJSON();
-  const body: Record<string, unknown> = {
-    endpoint: sub.endpoint,
-    keys: sub.keys,
-    timezone,
-    prefs,
-  };
-  if (loc) {
-    body.lat = loc.lat;
-    body.lng = loc.lng;
+  let subscription: PushSubscription;
+  try {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+  } catch (err) {
+    if (err instanceof DOMException) {
+      if (err.name === "AbortError") {
+        console.error(
+          "[push] Push service rejected the subscription. This can happen if:\n" +
+          "  1. The browser's push service is blocked (firewall, VPN, network policy)\n" +
+          "  2. The VAPID public key is invalid or not accepted by the push service\n" +
+          "  3. The browser has push disabled (check browser settings, not just permission)\n" +
+          "  4. A browser extension is interfering with Web Push\n" +
+          "Try: reloading the page, checking your network, or trying a different browser."
+        );
+      } else if (err.name === "NotAllowedError") {
+        console.error("[push] Notification permission was denied. The user must grant notification permission for the site.");
+      } else {
+        console.error(`[push] Subscription failed: ${err.name} — ${err.message}`);
+      }
+    } else {
+      console.error("[push] Subscription failed with non-DOM error:", err);
+    }
+    throw err; // Re-throw so the caller knows it failed
   }
-  body.locale = getLocale();
+
+  // Send to worker
+  const sub = subscription.toJSON();
+  const body = buildBody(sub, prefs);
 
   const res = await fetch(`${WORKER_URL}/api/subscribe`, {
     method: "POST",
@@ -135,22 +170,8 @@ export async function updatePreferences(prefs: PushPrefs): Promise<void> {
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
 
-  const loc = getUserLocation();
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  // Worker expects flat fields (endpoint, keys at top level)
   const sub = subscription.toJSON();
-  const body: Record<string, unknown> = {
-    endpoint: sub.endpoint,
-    keys: sub.keys,
-    timezone,
-    prefs,
-  };
-  if (loc) {
-    body.lat = loc.lat;
-    body.lng = loc.lng;
-  }
-  body.locale = getLocale();
+  const body = buildBody(sub, prefs);
 
   try {
     const res = await fetch(`${WORKER_URL}/api/preferences`, {
@@ -167,5 +188,36 @@ export async function updatePreferences(prefs: PushPrefs): Promise<void> {
     console.log("[push] preferences updated");
   } catch (err) {
     console.warn("[push] failed to update preferences", err);
+  }
+}
+
+/**
+ * Lightweight sync: re-send current state to the Worker without
+ * re-prompting for permission or re-subscribing PushManager.
+ * Only does something if the user already has a push subscription.
+ * On success, marks the server sync timestamp.
+ */
+export async function syncServerState(prefs: PushPrefs): Promise<void> {
+  const subscription = await getPushSubscription();
+  if (!subscription) return;
+
+  try {
+    const sub = subscription.toJSON();
+    const body = buildBody(sub, prefs);
+
+    const res = await fetch(`${WORKER_URL}/api/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      throw new Error(`[push] sync failed: ${res.status}`);
+    }
+
+    markServerSynced();
+    console.log("[push] server state synced");
+  } catch (err) {
+    console.warn("[push] failed to sync server state", err);
   }
 }
