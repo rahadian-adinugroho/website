@@ -336,11 +336,34 @@ function renderHijriDate(date: Date): void {
     // Use islamic-civil (tabular Islamic calendar, epoch Friday July 16 622 CE)
     // to avoid the Firefox warning about unspecified calendar variant.
     // Note: islamic-tbla (epoch Thursday July 15) is 1 day ahead.
-    hijriEl.textContent = new Intl.DateTimeFormat(`${getLocale()}-u-ca-islamic-civil`, {
+    // TODO: add in settings to configure the Hijri calendar calc method
+    const locale = getLocale();
+  
+    const gregorianBcEra = new Intl.DateTimeFormat(locale, { era: "short", year: "numeric" })
+      .formatToParts(new Date(-50000, 0, 1))
+      .find(p => p.type === "era")?.value;
+  
+    const islamicEra = new Intl.DateTimeFormat(`${locale}-u-ca-islamic-civil`, { era: "short", year: "numeric" })
+      .formatToParts(new Date())
+      .find(p => p.type === "era")?.value;
+  
+    const HIJRI_ERA: Record<string, string> = { id: "H", ar: "هـ", ms: "H" };
+    const era = (!islamicEra || islamicEra === gregorianBcEra)
+      ? (HIJRI_ERA[locale.split("-")[0]] ?? "AH")
+      : islamicEra;
+  
+    const dateStr = new Intl.DateTimeFormat(`${locale}-u-ca-islamic-civil`, {
       day: "numeric",
       month: "long",
       year: "numeric",
-    }).format(date);
+    })
+      .formatToParts(date)
+      .filter(p => p.type !== "era")
+      .map(p => p.value)
+      .join("")
+      .trimEnd();
+  
+    hijriEl.textContent = `${dateStr} ${era}`;
   } catch {
     const gd = date.getDate();
     const gm = date.getMonth() + 1;
