@@ -9,11 +9,10 @@
   <div class="flex flex-col items-center">
     <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4" data-i18n="qibla.heading">Qibla Compass</h2>
     <div class="relative w-48 h-48 rounded-full bg-gray-100 dark:bg-gray-800 border-4 border-gray-300 dark:border-gray-700 flex items-center justify-center">
-      <!-- Compass rose cardinal points -->
-      <span class="absolute top-2 text-xs text-gray-500 dark:text-gray-400">📱</span>
-
-      <!-- Arrow -->
-      <svg id="qibla-arrow" class="w-32 h-32" viewBox="0 0 100 100" style="transform: rotate(0deg); will-change: transform;">
+      <!-- Arrow (rotates to point toward Qibla) -->
+      <svg id="qibla-arrow" class="w-32 h-32" viewBox="0 -15 100 115" style="transform: rotate(0deg); will-change: transform;">
+        <!-- Qibla emoji above the tip — rotates with the arrow via SVG transform -->
+        <text x="50" y="-3" text-anchor="middle" font-size="18" style="dominant-baseline: middle;">🕋</text>
         <!-- Arrow pointing up (toward Qibla) -->
         <polygon points="50,10 35,50 45,50 45,90 55,90 55,50 65,50" fill="#16a34a" />
       </svg>
