@@ -58,7 +58,7 @@ cd islam && bunx tsc --noEmit
 - `src/lib/settings.ts` — settings types, defaults, persistence (localStorage)
 - `src/lib/location.ts` — location handling with cache + drift detection
 - `src/i18n/i18n.ts` + `en.json` / `id.json` — internationalization
-- `public/sw.js` — service worker (push, notificationclick — no fetch handler)
+- `public/sw.js` — service worker (pre-cache app shell on install, stale-while-revalidate fetch for same-origin GET, push, notificationclick)
 - `public/manifest.json` — PWA manifest (PNG icons only, no SVG)
 - `public/icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon.svg`, `logo-mask.png` — icons
 
@@ -114,7 +114,7 @@ cd islam && bunx tsc --noEmit
 
 - The PWA is purely client-side — no backend in this repo
 - Push notifications require the separate Worker repo (see Related repos)
-- The service worker has NO `fetch` handler — only `push` and `notificationclick`. Offline is handled by browser HTTP cache, not SW
+- The service worker uses stale-while-revalidate for same-origin GET requests (added in #34). The app shell is pre-cached on install and refreshed in the background on subsequent visits, so the PWA is properly offline-first.
 - PWA manifest icons must be PNG (SVG causes two apps to install on Android)
 - iOS fills transparent PNG corners with black — icons must have an opaque background
 - The `QiblaCompass.astro` SVG arrow rotates via inline `style.transform` — the 🕋 emoji is inside the SVG so it rotates with the arrow
