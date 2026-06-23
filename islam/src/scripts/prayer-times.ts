@@ -328,22 +328,38 @@ function highlightPrayers(
   }
 }
 
+/**
+ * Map a prayer calculation method to the corresponding Intl.DateTimeFormat
+ * Islamic calendar. The Umm al-Qura method uses its own calendar; all other
+ * methods use the standard tabular civil calendar (used by Kemenag RI,
+ * Muslim World League, ISNA, Diyanet, etc.).
+ */
+function getHijriCalendar(method: string): string {
+  if (method === "ummAlQura") return "islamic-umalqura";
+  return "islamic-civil";
+}
+
 function renderHijriDate(date: Date): void {
   const hijriEl = document.getElementById("hijri-date");
   if (!hijriEl) return;
 
   try {
-    // Use islamic-civil (tabular Islamic calendar, epoch Friday July 16 622 CE)
-    // to avoid the Firefox warning about unspecified calendar variant.
-    // Note: islamic-tbla (epoch Thursday July 15) is 1 day ahead.
-    // TODO: add in settings to configure the Hijri calendar calc method
+    // Resolve the prayer calc method and pick the matching Hijri calendar.
+    // This also handles the "automatic" setting by falling through to
+    // locale-based resolution when coordinates aren't available.
+    const calcMethod = currentSettings
+      ? resolveMethod(currentSettings)
+      : "singapore";
+    const hijriCalendar = getHijriCalendar(calcMethod);
+
     const locale = getLocale();
+    const calendarLocale = `${locale}-u-ca-${hijriCalendar}`;
   
     const gregorianBcEra = new Intl.DateTimeFormat(locale, { era: "short", year: "numeric" })
       .formatToParts(new Date(-50000, 0, 1))
       .find(p => p.type === "era")?.value;
   
-    const islamicEra = new Intl.DateTimeFormat(`${locale}-u-ca-islamic-civil`, { era: "short", year: "numeric" })
+    const islamicEra = new Intl.DateTimeFormat(calendarLocale, { era: "short", year: "numeric" })
       .formatToParts(new Date())
       .find(p => p.type === "era")?.value;
   
@@ -352,7 +368,7 @@ function renderHijriDate(date: Date): void {
       ? (HIJRI_ERA[locale.split("-")[0]] ?? "AH")
       : islamicEra;
   
-    const dateStr = new Intl.DateTimeFormat(`${locale}-u-ca-islamic-civil`, {
+    const dateStr = new Intl.DateTimeFormat(calendarLocale, {
       day: "numeric",
       month: "long",
       year: "numeric",
