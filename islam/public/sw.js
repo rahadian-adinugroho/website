@@ -60,7 +60,7 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: data.icon || "/icon.png",
-      badge: data.icon || "/icon.png",
+      badge: "/logo-mask.png", // small icon (status bar) — white silhouette on transparent
       tag: data.tag,
       requireInteraction: false,
     }),
