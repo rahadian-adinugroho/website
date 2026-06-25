@@ -1,27 +1,26 @@
 # website
 
-Personal website monorepo — [raharoho.me](https://raharoho.me) and [blog.raharoho.me](https://blog.raharoho.me).
+Personal website monorepo — [raharoho.me](https://raharoho.me), [blog.raharoho.me](https://blog.raharoho.me), and [islam.raharoho.me](https://islam.raharoho.me).
 
 ## Structure
 
 ```
 /
-├── landing/   → raharoho.me
-└── blog/      → blog.raharoho.me
+├── landing/   → raharoho.me         (Astro static site)
+├── blog/      → blog.raharoho.me    (Astro + content collections)
+└── islam/     → islam.raharoho.me   (Astro PWA: prayer times + Qibla compass)
 ```
 
-Both are static [Astro](https://astro.build) sites with Tailwind CSS, built and deployed to [Cloudflare Pages](https://pages.cloudflare.com) via GitHub Actions.
+All three are static [Astro](https://astro.build) sites with Tailwind CSS, built and deployed to [Cloudflare Pages](https://pages.cloudflare.com) via GitHub Actions. Each has its own `package.json`.
 
 ## Local development
 
-Requires [Bun](https://bun.sh).
+Requires [Bun](https://bun.sh). `cd` into the project first.
 
 ```bash
-# Landing
 cd landing && bun install && bun run dev
-
-# Blog
-cd blog && bun install && bun run dev
+cd blog    && bun install && bun run dev
+cd islam   && bun install && bun run dev
 ```
 
 ## Deployment
@@ -32,8 +31,6 @@ cd blog && bun install && bun run dev
 | Push to `main` | `deploy.yml` | Production deployment to Cloudflare Pages |
 
 ### Required secrets
-
-Add these to the repository's GitHub Secrets:
 
 | Secret | Description |
 |---|---|
@@ -48,26 +45,17 @@ Create a `.md` file in `blog/src/content/posts/`. The filename becomes the URL s
 ---
 title: "Your Post Title"
 description: "A one-sentence summary shown on the index page."
-date: 2026-06-18
+date: 2026-06-23
+category: engineering-web-apps
 draft: false
 ---
 
 Post content here. Standard Markdown applies.
 ```
 
-Set `draft: true` to write without publishing. The post will be excluded from the index and all static routes until set back to `false`.
+Set `draft: true` to write without publishing.
 
-## Categories
-
-Add an optional `category` field to a post's frontmatter:
-
-```markdown
----
-category: traveling
----
-```
-
-Available values:
+### Categories
 
 | Slug | Display label |
 |---|---|
@@ -76,6 +64,12 @@ Available values:
 | `traveling` | Traveling |
 | `automotive` | Automotive |
 
-Posts are grouped by category on the index page. Each category also has its own listing page at `/category/{slug}`. Posts without a category are listed last under "Uncategorized".
+Posts are grouped by category on the index page. To add a new category, extend the enum in `blog/src/content/config.ts` and add the display label to `CATEGORY_LABELS` in the three `blog/src/pages/` files.
 
-To add a new category, extend the enum in `blog/src/content/config.ts` and add the display label to the `CATEGORY_LABELS` map in `blog/src/pages/index.astro`, `blog/src/pages/category/[category].astro`, and `blog/src/pages/posts/[slug].astro`.
+## Related repos
+
+- **[islam-push-worker](https://github.com/rahadian-adinugroho/islam-push-worker)** — Cloudflare Worker for the islam PWA's push notifications. Cron every minute.
+
+## AI agent context
+
+See [AGENTS.md](./AGENTS.md) for repo conventions, common tasks, and gotchas — read this first if you're an AI agent.
