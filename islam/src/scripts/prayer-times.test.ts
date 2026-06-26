@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getCurrentAndNextPrayerIdx, formatCountdown } from "./prayer-times";
+import { getCurrentAndNextPrayerIdx, formatCountdown, shouldReinitializePrayerTimes } from "./prayer-times";
 
 /**
  * Helper: create a prayer entry with only the fields needed for index lookup.
@@ -157,5 +157,41 @@ describe("formatCountdown", () => {
   it("handles large durations (many hours)", () => {
     const target = new Date(base.getTime() + 25 * 3600 * 1000); // 25 hours
     expect(formatCountdown(target, base)).toBe("25:00:00");
+  });
+});
+
+describe("shouldReinitializePrayerTimes", () => {
+  it("returns false when lastInitDate is null", () => {
+    expect(shouldReinitializePrayerTimes(null, new Date("2026-06-23T12:00:00"))).toBe(false);
+  });
+
+  it("returns false when dates match", () => {
+    const last = new Date("2026-06-23T08:00:00").toDateString();
+    const now = new Date("2026-06-23T20:00:00");
+    expect(shouldReinitializePrayerTimes(last, now)).toBe(false);
+  });
+
+  it("returns true when dates differ (day rollover)", () => {
+    const last = new Date("2026-06-23T23:59:00").toDateString();
+    const now = new Date("2026-06-24T00:01:00");
+    expect(shouldReinitializePrayerTimes(last, now)).toBe(true);
+  });
+
+  it("returns true when dates differ by more than one day (e.g., laptop reopened days later)", () => {
+    const last = new Date("2026-06-23T20:00:00").toDateString();
+    const now = new Date("2026-06-26T08:00:00");
+    expect(shouldReinitializePrayerTimes(last, now)).toBe(true);
+  });
+
+  it("handles month boundary", () => {
+    const last = new Date("2026-06-30T23:59:00").toDateString();
+    const now = new Date("2026-07-01T00:01:00");
+    expect(shouldReinitializePrayerTimes(last, now)).toBe(true);
+  });
+
+  it("handles year boundary", () => {
+    const last = new Date("2026-12-31T23:59:00").toDateString();
+    const now = new Date("2027-01-01T00:01:00");
+    expect(shouldReinitializePrayerTimes(last, now)).toBe(true);
   });
 });
