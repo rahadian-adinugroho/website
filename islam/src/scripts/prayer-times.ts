@@ -16,6 +16,12 @@ let prayerTimesDisplay: PrayerTimes | null = null;
 let sunnahTimesDisplay: SunnahTimes | null = null;
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
 let currentSettings: Settings | null = null;
+// Track the date when prayerTimesDisplay was last calculated, plus the
+// lat/lng used. Used to detect day rollover (user crosses midnight or
+// reopens the laptop the next day) and re-initialize prayer times.
+let lastInitDate: string | null = null;
+let lastLat: number | null = null;
+let lastLng: number | null = null;
 let currentSunnahData: {
   dhuha: Date;
   middleOfNight: Date;
@@ -33,19 +39,23 @@ function getPrayerLabels(): Record<string, string> {
   };
 }
 
-export function initPrayerTimes(
-  lat: number,
-  lng: number,
-  settings?: Settings,
-): void {
-  if (settings) currentSettings = settings;
+/**
+ * Recalculate prayer times for the current date using the stored lat/lng
+ * and settings. Updates prayerTimesDisplay, sunnahTimesDisplay, and
+ * currentSunnahData, then re-renders the UI.
+ *
+ * Used by both initPrayerTimes() (first load) and updateCountdown() when
+ * the date has changed (day rollover).
+ *
+ * No-op if lat/lng/settings are not yet available.
+ */
+function recalculatePrayerTimes(): void {
+  if (lastLat === null || lastLng === null || !currentSettings) return;
 
-  const coordinates = new Coordinates(lat, lng);
+  const coordinates = new Coordinates(lastLat, lastLng);
 
   // Resolve calculation method from settings or locale with coordinate fallback
-  const resolved = currentSettings
-    ? resolveMethod(currentSettings, lat, lng)
-    : "singapore";
+  const resolved = resolveMethod(currentSettings, lastLat, lastLng);
   const params = getAdhanCalculationMethod(resolved);
 
   // Apply ihtiyat (precautionary) adjustments — only for Singapore/Kemenag
@@ -90,6 +100,22 @@ export function initPrayerTimes(
 
   renderPrayerTimes();
   renderHijriDate(date);
+
+  // Track the date we just calculated for, so updateCountdown() can detect
+  // day rollover on the next tick.
+  lastInitDate = date.toDateString();
+}
+
+export function initPrayerTimes(
+  lat: number,
+  lng: number,
+  settings?: Settings,
+): void {
+  if (settings) currentSettings = settings;
+  lastLat = lat;
+  lastLng = lng;
+
+  recalculatePrayerTimes();
   startCountdown();
   showPrayerTimes();
 
@@ -217,6 +243,18 @@ function startCountdown(): void {
 }
 
 function updateCountdown(): void {
+  // Detect day rollover (user crossed midnight, or reopened the laptop the
+  // next day). The setInterval in startCountdown() may have been throttled
+  // by the browser (e.g., background tab), so we check the date on every
+  // tick and re-initialize prayer times if it has changed.
+  if (shouldReinitializePrayerTimes(lastInitDate, new Date())) {
+    console.log(
+      `[prayer-times] date changed, re-initializing`,
+    );
+    recalculatePrayerTimes();
+    window.dispatchEvent(new CustomEvent("prayer:updated"));
+  }
+
   // Re-evaluate highlighting every second so the highlight follows
   // the current time as prayer windows change (e.g. when Fajr starts,
   // Fajr becomes the highlighted "current" prayer).
@@ -429,6 +467,22 @@ export function formatCountdown(targetTime: Date, now: Date): string {
   const minutes = Math.floor((diff % 3600000) / 60000);
   const seconds = Math.floor((diff % 60000) / 1000);
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+/**
+ * Pure helper: should we re-initialize prayer times for the new date?
+ *
+ * Returns true if `lastInitDate` is set AND the date string of `now`
+ * differs from it. Used by updateCountdown() to detect day rollover.
+ *
+ * Exported for testing.
+ */
+export function shouldReinitializePrayerTimes(
+  lastInitDate: string | null,
+  now: Date,
+): boolean {
+  if (!lastInitDate) return false;
+  return now.toDateString() !== lastInitDate;
 }
 
 function showPrayerTimes(): void {
