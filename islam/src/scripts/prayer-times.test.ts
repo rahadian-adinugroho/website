@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { getCurrentAndNextPrayerIdx, formatCountdown, shouldReinitializePrayerTimes } from "./prayer-times";
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  getCurrentAndNextPrayerIdx,
+  formatCountdown,
+  shouldReinitializePrayerTimes,
+  getHijriMonthName,
+  getHijriCalendar,
+} from "./prayer-times";
+import { setLocale } from "../i18n/i18n";
 
 /**
  * Helper: create a prayer entry with only the fields needed for index lookup.
@@ -193,5 +200,68 @@ describe("shouldReinitializePrayerTimes", () => {
     const last = new Date("2026-12-31T23:59:00").toDateString();
     const now = new Date("2027-01-01T00:01:00");
     expect(shouldReinitializePrayerTimes(last, now)).toBe(true);
+  });
+});
+
+describe("getHijriMonthName", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("returns English month names 1–12", () => {
+    setLocale("en");
+    expect(getHijriMonthName(1)).toBe("Muharram");
+    expect(getHijriMonthName(2)).toBe("Safar");
+    expect(getHijriMonthName(3)).toBe("Rabi' al-Awwal");
+    expect(getHijriMonthName(4)).toBe("Rabi' al-Thani");
+    expect(getHijriMonthName(5)).toBe("Jumada al-Awwal");
+    expect(getHijriMonthName(6)).toBe("Jumada al-Thani");
+    expect(getHijriMonthName(7)).toBe("Rajab");
+    expect(getHijriMonthName(8)).toBe("Sha'ban");
+    expect(getHijriMonthName(9)).toBe("Ramadan");
+    expect(getHijriMonthName(10)).toBe("Shawwal");
+    expect(getHijriMonthName(11)).toBe("Dhu al-Qi'dah");
+    expect(getHijriMonthName(12)).toBe("Dhu al-Hijjah");
+  });
+
+  it("returns Indonesian month names 1–12", () => {
+    setLocale("id");
+    expect(getHijriMonthName(1)).toBe("Muharram");
+    expect(getHijriMonthName(2)).toBe("Safar");
+    expect(getHijriMonthName(3)).toBe("Rabiul Awal");
+    expect(getHijriMonthName(4)).toBe("Rabiul Akhir");
+    expect(getHijriMonthName(5)).toBe("Jumadil Awal");
+    expect(getHijriMonthName(6)).toBe("Jumadil Akhir");
+    expect(getHijriMonthName(7)).toBe("Rajab");
+    expect(getHijriMonthName(8)).toBe("Sya'ban");
+    expect(getHijriMonthName(9)).toBe("Ramadan");
+    expect(getHijriMonthName(10)).toBe("Syawal");
+    expect(getHijriMonthName(11)).toBe("Dzulkaidah");
+    expect(getHijriMonthName(12)).toBe("Dzulhijjah");
+  });
+
+  it("returns empty string for out-of-range month", () => {
+    setLocale("en");
+    expect(getHijriMonthName(0)).toBe("");
+    expect(getHijriMonthName(13)).toBe("");
+    expect(getHijriMonthName(-1)).toBe("");
+  });
+});
+
+describe("getHijriCalendar", () => {
+  it("returns islamic-umalqura for the Umm al-Qura method", () => {
+    expect(getHijriCalendar("ummAlQura")).toBe("islamic-umalqura");
+  });
+
+  it("returns islamic-tbla for all other methods (singapore, MWL, etc.)", () => {
+    // Regression: commit that switched to islamic-civil showed dates 1 day
+    // behind. islamic-tbla is the correct variant.
+    expect(getHijriCalendar("singapore")).toBe("islamic-tbla");
+    expect(getHijriCalendar("muslimWorldLeague")).toBe("islamic-tbla");
+    expect(getHijriCalendar("egyptian")).toBe("islamic-tbla");
+    expect(getHijriCalendar("karachi")).toBe("islamic-tbla");
+    expect(getHijriCalendar("northAmerica")).toBe("islamic-tbla");
+    expect(getHijriCalendar("tehran")).toBe("islamic-tbla");
+    expect(getHijriCalendar("turkey")).toBe("islamic-tbla");
   });
 });

@@ -369,13 +369,33 @@ function highlightPrayers(
 /**
  * Map a prayer calculation method to the corresponding Intl.DateTimeFormat
  * Islamic calendar. The Umm al-Qura method uses its own calendar; all other
- * methods use the standard tabular civil calendar (used by Kemenag RI,
- * Muslim World League, ISNA, Diyanet, etc.).
+ * methods use the tabular (true lunar) calendar.
+ *
+ * `islamic-tbla` (epoch Thursday July 15 622 CE Julian) is the correct
+ * variant for this app. `islamic-civil` (epoch Friday July 16 622 CE
+ * Julian) is 1 day behind and would show yesterday's Hijri date. Both
+ * variants avoid the Firefox warning about unspecified calendar variants.
  */
-function getHijriCalendar(method: string): string {
+export function getHijriCalendar(method: string): string {
   if (method === "ummAlQura") return "islamic-umalqura";
-  return "islamic-civil";
+  return "islamic-tbla";
 }
+
+/**
+ * Look up the localized Hijri month name from the active i18n dictionary.
+ * Exported for testing. `month` is 1-indexed (1 = Muharram, 12 = Dhu al-Hijjah).
+ * Returns "" for out-of-range values.
+ */
+export function getHijriMonthName(month: number): string {
+  const months = t("hijri.months").split("|");
+  return months[month - 1] || "";
+}
+
+/**
+ * Per-locale Hijri era suffix. Indonesian and Malay use the short form "H",
+ * Arabic uses the Arabic letter هـ, and everything else falls back to "AH".
+ */
+const HIJRI_ERA: Record<string, string> = { id: "H", ar: "هـ", ms: "H" };
 
 function renderHijriDate(date: Date): void {
   const hijriEl = document.getElementById("hijri-date");
@@ -392,32 +412,29 @@ function renderHijriDate(date: Date): void {
 
     const locale = getLocale();
     const calendarLocale = `${locale}-u-ca-${hijriCalendar}`;
-  
-    const gregorianBcEra = new Intl.DateTimeFormat(locale, { era: "short", year: "numeric" })
-      .formatToParts(new Date(-50000, 0, 1))
-      .find(p => p.type === "era")?.value;
-  
-    const islamicEra = new Intl.DateTimeFormat(calendarLocale, { era: "short", year: "numeric" })
-      .formatToParts(new Date())
-      .find(p => p.type === "era")?.value;
-  
-    const HIJRI_ERA: Record<string, string> = { id: "H", ar: "هـ", ms: "H" };
-    const era = (!islamicEra || islamicEra === gregorianBcEra)
-      ? (HIJRI_ERA[locale.split("-")[0]] ?? "AH")
-      : islamicEra;
-  
-    const dateStr = new Intl.DateTimeFormat(calendarLocale, {
+
+    // Use `month: "numeric"` and look up the localized name from our i18n
+    // dictionary instead of `month: "long"`. Chromium on Android has a bug
+    // where the Islamic calendar (via the Unicode extension) correctly
+    // converts the numeric year/day/month but returns a Gregorian
+    // localized month name (e.g. "January" instead of "Muharram").
+    // Requesting the number and looking up the name from `hijri.months`
+    // avoids the bug and keeps a single source of truth for Hijri month
+    // names across browsers.
+    const parts = new Intl.DateTimeFormat(calendarLocale, {
       day: "numeric",
-      month: "long",
+      month: "numeric",
       year: "numeric",
-    })
-      .formatToParts(date)
-      .filter(p => p.type !== "era")
-      .map(p => p.value)
-      .join("")
-      .trimEnd();
-  
-    hijriEl.textContent = `${dateStr} ${era}`;
+    }).formatToParts(date);
+
+    const day = parts.find((p) => p.type === "day")?.value;
+    const month = Number(parts.find((p) => p.type === "month")?.value ?? 0);
+    const year = parts.find((p) => p.type === "year")?.value;
+
+    const monthName = getHijriMonthName(month);
+    const era = HIJRI_ERA[locale.split("-")[0]] ?? "AH";
+
+    hijriEl.textContent = `${day} ${monthName} ${year} ${era}`;
   } catch {
     const gd = date.getDate();
     const gm = date.getMonth() + 1;
@@ -449,9 +466,9 @@ function renderHijriDate(date: Date): void {
     const hd = jd - Math.floor((709 * hm) / 24);
     const hy = 30 * n + j - 30;
 
-    const months = t("hijri.months").split("|");
-    const monthName = months[hm - 1] || "";
-    hijriEl.textContent = `${hd} ${monthName} ${hy} AH`;
+    const monthName = getHijriMonthName(hm);
+    const era = HIJRI_ERA[getLocale().split("-")[0]] ?? "AH";
+    hijriEl.textContent = `${hd} ${monthName} ${hy} ${era}`;
   }
 }
 
