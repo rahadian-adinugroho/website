@@ -4,6 +4,7 @@ import {
   formatCountdown,
   shouldReinitializePrayerTimes,
   getHijriMonthName,
+  getHijriCalendar,
 } from "./prayer-times";
 import { setLocale } from "../i18n/i18n";
 
@@ -244,5 +245,23 @@ describe("getHijriMonthName", () => {
     expect(getHijriMonthName(0)).toBe("");
     expect(getHijriMonthName(13)).toBe("");
     expect(getHijriMonthName(-1)).toBe("");
+  });
+});
+
+describe("getHijriCalendar", () => {
+  it("returns islamic-umalqura for the Umm al-Qura method", () => {
+    expect(getHijriCalendar("ummAlQura")).toBe("islamic-umalqura");
+  });
+
+  it("returns islamic-tbla for all other methods (singapore, MWL, etc.)", () => {
+    // Regression: commit that switched to islamic-civil showed dates 1 day
+    // behind. islamic-tbla is the correct variant.
+    expect(getHijriCalendar("singapore")).toBe("islamic-tbla");
+    expect(getHijriCalendar("muslimWorldLeague")).toBe("islamic-tbla");
+    expect(getHijriCalendar("egyptian")).toBe("islamic-tbla");
+    expect(getHijriCalendar("karachi")).toBe("islamic-tbla");
+    expect(getHijriCalendar("northAmerica")).toBe("islamic-tbla");
+    expect(getHijriCalendar("tehran")).toBe("islamic-tbla");
+    expect(getHijriCalendar("turkey")).toBe("islamic-tbla");
   });
 });

@@ -369,12 +369,16 @@ function highlightPrayers(
 /**
  * Map a prayer calculation method to the corresponding Intl.DateTimeFormat
  * Islamic calendar. The Umm al-Qura method uses its own calendar; all other
- * methods use the standard tabular civil calendar (used by Kemenag RI,
- * Muslim World League, ISNA, Diyanet, etc.).
+ * methods use the tabular (true lunar) calendar.
+ *
+ * `islamic-tbla` (epoch Thursday July 15 622 CE Julian) is the correct
+ * variant for this app. `islamic-civil` (epoch Friday July 16 622 CE
+ * Julian) is 1 day behind and would show yesterday's Hijri date. Both
+ * variants avoid the Firefox warning about unspecified calendar variants.
  */
-function getHijriCalendar(method: string): string {
+export function getHijriCalendar(method: string): string {
   if (method === "ummAlQura") return "islamic-umalqura";
-  return "islamic-civil";
+  return "islamic-tbla";
 }
 
 /**
